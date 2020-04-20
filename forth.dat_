@@ -1,0 +1,54 @@
+( scr 1 ) 
+: decod 0 2 ! [compile] ' dup cfa @ 
+' : 
+18 + = 
+if 58 emit space 
+dup nfa id. 
+begin 0 0 ! 
+dup @ 2+ 
+dup ' lit = 
+if 1 0 ! else dup ' (.") = 
+if 2 0 ! then 
+then nfa id. 
+1 2 +! 
+2+ 0 @ 1 = 
+over @ abs 512 < or 
+if dup @ . 
+2+ then 0 @ 2 = 
+if dup count type 
+dup c@ even + 
+space 
+then dup @ 2+ ' ;s over = 
+swap ' quit = or 
+2 @ 10 mod 0= if cr then 
+until 59 emit 
+else ." primitive" 
+then cr ; 
+
+: asctab ." oct hex dec char oct hex dec char  " 
+." oct hex dec char" cr 
+128 32 do 
+i octal 3 .r 
+space i hex 3 .r 
+space i decimal 3 .r 
+3 spaces i emit 
+5 spaces i 3 mod 0= if cr then 
+loop ; 
+quit                                                                                                                           
+                                                                                                                                                                                                
+                                                                                                                                
+                                                                
+                                                                                                                                
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            ( scr 1 )                                                         
+abort                                                                                                                           
+                                                                                                                                                                                                
+                                                                                                                                
+                                                                
+                                                                                                                                
+
+
+
+                                                                                                                                                                                                                                                                                                            

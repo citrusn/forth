@@ -1,0 +1,60 @@
+{
+	"folders": [
+		{
+			"path": "C:\\Progs\\Quartus\\Gameduino\\Godzil\\j0\\firmware"
+		},
+		{
+			"name": "SelfTest",
+			"path": "C:\\Users\\Дима\\Documents\\PlatformIO\\Projects\\SelfTest"
+		},
+		{
+			"name": "Ball",
+			"path": "C:\\Users\\Дима\\Documents\\PlatformIO\\Projects\\Ball"
+		},
+		{
+			"name": "Asteroid",
+			"path": "C:\\Users\\Дима\\Documents\\PlatformIO\\Projects\\Asteroid"
+		},
+		{
+			"name": "200303-212820-uno",
+			"path": "C:\\Users\\Дима\\Documents\\PlatformIO\\Projects\\200303-212820-uno"
+		},
+		{
+			"name": "200303-213142-uno",
+			"path": "C:\\Users\\Дима\\Documents\\PlatformIO\\Projects\\200303-213142-uno"
+		},
+		{
+			"name": "200303-213746-uno",
+			"path": "C:\\Users\\Дима\\Documents\\PlatformIO\\Projects\\200303-213746-uno"
+		},
+		{
+			"name": "200303-214020-uno",
+			"path": "C:\\Users\\Дима\\Documents\\PlatformIO\\Projects\\200303-214020-uno"
+		},
+		{
+			"name": "Wireframe",
+			"path": "C:\\Users\\Дима\\Documents\\PlatformIO\\Projects\\Wireframe"
+		},
+		{
+			"name": "HelloWorldF",
+			"path": "C:\\Users\\Дима\\Documents\\PlatformIO\\Projects\\HelloWorldF"
+		},
+		{
+			"name": "200307-165818-uno",
+			"path": "C:\\Users\\Дима\\Documents\\PlatformIO\\Projects\\200307-165818-uno"
+		},
+		{
+			"name": "200307-184106-uno",
+			"path": "C:\\Users\\Дима\\Documents\\PlatformIO\\Projects\\200307-184106-uno"
+		},
+		{
+			"name": "200307-184321-uno",
+			"path": "C:\\Users\\Дима\\Documents\\PlatformIO\\Projects\\200307-184321-uno"
+		},
+		{
+			"name": "HelloWorld",
+			"path": "C:\\Users\\Дима\\Documents\\PlatformIO\\Projects\\HelloWorld"
+		}
+	],
+	"settings": {}
+}

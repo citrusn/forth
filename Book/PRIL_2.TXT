@@ -1,0 +1,154 @@
+                            Приложение 2
+
+         Библиотека для работы с числами с плавающей точкой
+
+
+   ( Формат чисел соответствует требованиям СМ ЭВМ )
+
+   : ODER 16 0 DO DUP 0< IF 32 I - CSP ! LEAVE THEN 2*
+	       LOOP DROP ;                       ( преднормализация)
+   : E+ CSP +! ;
+   : 2@ DUP 2+ @ SWAP @ ;       ( извлечение числа двойной длины по
+                                  адресу, лежащему в стеке)
+   : 2! DUP >R ! R> 2+ ! ;    ( аналог "!" только для чисел двойной
+			        длины)
+   : NORM >R BEGIN    ,                       (оператор нормализации)
+        	DUP '76000 AND
+	     WHILE 2 DIV I
+                IF 1 E+ THEN
+	     REPEAT
+	     BEGIN DUP 512 AND 0=
+             WHILE 2 MUL I
+                IF -1 E+ THEN
+             REPEAT LEV  ;
+
+   : FL           ( преобразование чисел из входного формата [после
+                    NUMBER] в формат с плавающей точкой)
+       0 CSP ! DUP 32768 AND R# ! DPL @ DUP -1 =
+          IF DROP S->D 0 THEN MINUS $EX +! R# @
+          IF DABS THEN DUP
+          IF DUP ODER
+          ELSE OVER -DUP
+               IF ODER -16 E+ THEN
+          THEN CSP @
+          IF 0 NORM $EX @ 3 * E+ BASE @ 10 =
+             IF $EX @ -DUP
+                IF ABS 0
+                   DO $EX @ 0<
+                      IF 8 MUL 10 DIV
+                      ELSE 10 MUL 8 DIV
+                      THEN 1 NORM
+                   LOOP
+                THEN
+             THEN 511 AND 4 DIV R# @ OR CSP @ 127 AND CSP @ 0>
+                IF 128 OR THEN 128 * OR
+          THEN ;
+
+   : NORA BEGIN DUP '77600 AND
+	  WHILE 10 DIV 1 E+
+	  REPEAT
+	  BEGIN DUP '3600 AND 0=
+	  WHILE 10 MUL -1 E+
+	  REPEAT 10 DIV 1 E+ ;
+
+   : 2**   -DUP                      ( функция 2^N, обращение: N 2**)
+           IF 1- -DUP
+	      IF 2 SWAP 0
+                 DO 2*
+                 LOOP
+              ELSE 2              ( если N=1)
+              THEN
+           ELSE 1                 ( если N=0)
+           THEN ;
+
+   (изменение знака числа с плавающей точкой)
+
+   CODE FCHS '100000 # R0 MOV, R0 S  () XOR, NEXT, C;
+
+   : FTY   DUP 0<                 ( печать числа с плавающей точкой)
+           IF ." -" 32767 AND
+           ELSE SPACE
+           THEN DUP 128 / 128 - >R  127 AND 128 OR 2 DIV
+           I I 3 / DUP CSP ! DUP R# ! /MOD 2** DPL
+           ! ABS 2** R> 0<
+	   IF DIV ELSE MUL THEN R# @ ABS -DUP
+	   IF 0
+	      DO R# @ 0<
+	        IF 10 MUL DPL @ DIV
+	        ELSE DPL @ MUL 10 DIV
+	        THEN NORA
+	      LOOP
+	   ELSE NORA
+	   THEN ." ." 7 0
+	   DO 10 MUL DUP 128 / 48 + EMIT 127 AND
+	   LOOP 2DROP ." E" CSP @ . ;
+
+   : FC   FL <BUILDS , , DOES> 2@> ;( описание оператора "константа
+                                      с плавающей точкой")
+   1E0  FC 1E                          ( единица с плавающей точкой)
+   2E0 FC 2E                                 ( 2 с плавающей точкой)
+   : F0=  OR 0= ;                                       ( аналог 0=)
+   : F?   2@ FTY ;        ( аналог "?" для чисел с плавающей точкой)
+   CODE   F+ S FADD, NEXT, C;       ( аналоги + - * / ABS для чисел
+                                      с плавающей точкой)
+   CODE   F- S FSUB, NEXT, C;
+   CODE   F* S FMUL, NEXT, C;
+   CODE   F/ S FDIV, NEXT, C;
+   CODE   FABS '100000 # S () BIC, NEXT, C;
+   CODE   F0> 2 S I) CLR, S )+ TST, GT IF, S () INC, THEN,
+          NEXT, C;              ( аналог 0>)
+   CODE   F0< 2 S I) CLR, S )+ TST, LT IF, S () INC, THEN,
+          NEXT, C;              ( аналог 0<)
+   : F+! >R  I 2@ F+ R> 2! ;
+   : 1/X 2DUP OR         ( функция 1/Х для чисел с плавающей точкой)
+           IF 1E 2SWAP F/
+	   ELSE 26 ERROR              ( сообщение об ошибке при Х=0)
+           THEN ;
+   : F** DUP R#  ! ABS -DUP       ( функция  X^N, обращение Х N F**)
+          IF 1- -DUP
+             IF >R 2DUP R> 0
+                DO 20VER F*                         ( N-1 умножение)
+                LOOP 2SWAP 2DROP
+             THEN
+          ELSE 2DROP 1E           ( если N = 0)
+          THEN R# @ 0<
+          IF 1/X                  ( если N < 0)
+          THEN ;
+   : INT  DUP 16384 AND          ( выделение целой части из числа с
+                                   плавающей точкой)
+          IF >R I I '37600 AND 128 / 16 MIN  2** >R 128
+             OR '377 AND 256 DIV R> MUL SWAP DROP R>  0<
+             IF MINUS THEN
+          ELSE 2DROP 0-
+          THEN ;
+   : 4DUP 2DUP  2DUP  ;
+   : 4DR  2 DROP 2 DROP ;
+   : FV   FL VARIABLE , ;        ( описание оператора "переменная с
+                                   плавающей точкой")
+   : F-!  >R FCHS R> F+! ;
+   15E0 FC 15F                        3.1415927 FC PI  ( число "Пи")
+   : F>   F- F0> ;       : F<   F- F0< ;       : EX0  0 $EX  ! ;
+   2.71828183 FC ЕЕ     0 0 FV XX    3E0 FC 3E      -1E0 FC  -1E
+   CODE  2>R    S  )+ RP  -) MOV,  S  )+ RP  -) MOV,  NEXT, C;
+   CODE  2R>    RP  )+ S  -) MOV,  RP )+ S   -) MOV,  NEXT, C;
+   CODE  2R     RP  () S  -) MOV,  2 RP I) S -) MOV,  NEXT, C;
+   : SQRT FABS  2DUP 2/  '17600 AND '40000 OR 5 0 DO 2OVER 2OVER
+          F/ F+ 2E F/ LOOP 2SWAP 2DROP  ;  ( извлечение квадратного
+                                 корня из числа  с плавающей точкой)
+
+   : LN   EXO -1 DPL ! DUP 128 / 127 AND FL LN2 F*
+          2SWAP 127 AND 16384 OR 1E 2OVER F- 2SWAP
+          1E F+ F/ 0 0 8 1
+          DO 2OVER I 2* 1- >R R F** R> FL F/ F+
+          LOOP 2SWAP 2DROP 2E F* F- ;
+
+   : EXP  ЕЕ 2OVER INT >R R F** 2SWAP EXO R>
+          -1 DPL ! FL F- 1E XX 2! IE 8 1
+          DO 2OVER F* I FL F/ 2DUP XX F+!
+          LOOP 4DR XX 2@ F* ;
+
+   : SIN  EX0 -1 DPL ! 4DUP F* 2SWAP 2DUP 8 1
+          DO XX 2! 2OVER F* I 2* DUP 1+ * FL F/
+          32768 XOR 2DUP XX 2@ F+
+          LOOP 2>R 4DR 2R> ;
+

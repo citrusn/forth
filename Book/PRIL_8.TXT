@@ -1,0 +1,42 @@
+                            Приложение 8
+
+                      Модель  оператора NUMBER
+
+   ( Преобразование счетной строки  символов  в  число  одинарной  или
+     двойной   длины  со  знаком.  Выходной  формат  приспособлен  для
+     последующего представления числа с плавающей точкой.)
+
+   : CROL DPL ! (NUMBER) DUP C@ BL - ;
+   : EXP  DPL @ >R 0 0 ROT DUP C@ '105 - 0
+          ?ERROR  1+ DUP C@ '55 -
+          IF (NUMBER) C@ BL - 0 ?ERROR DROP MINUS
+   ( (NUMBER) вспомогательный оператор со схемой  изменения  состояния
+     стека: 0 0 HERE -> N1 N2 HERE+K . Используется для преобразования
+     символьной строки с адресом HERE в число без знака)
+
+         ELSE DUP C@ '53 -
+              IF 1- THEN (NUMBER) C@ BL - 0 ?ERROR DROP
+         THEN  EXPO ! 0 R> DPL ! ;
+
+   : NUMA 0 EXPO ! BASE @ >R 0 0 ROT 1+ DUP C@ DUP '53 =
+          IF 10 BASE ! 0 >R DROP
+          ELSE DUP '55 =
+               IF 10 BASE ! 1 >R DROP
+               ELSE 0 >R '47 -
+                    IF 8 BASE !
+                    ELSE 1-
+                    THEN
+               THEN
+          THEN CROL
+          IF DUP C@ '56 =
+             IF 0 CROL DPL @ ." DPL=" U.
+                IF EXP THEN
+             ELSE EXP
+             THEN
+          THEN DROP R>
+          IF DMINUS THEN R> BASE ! ;
+
+   0 VARIABLE AA 20 ALLOT
+   : TT AA 1+ 16 EXPECT AA NUMBER ." RESL=" U. U. ." DPL-" DPL @
+    . ." EXP-" EXPO @ . ;
+

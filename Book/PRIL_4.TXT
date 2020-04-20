@@ -1,0 +1,113 @@
+                           Приложение 4
+
+                Программа тестирования блока памяти
+
+
+   ( Блок выполнен в стандарте КАМАК. Положение модуля фиксируется в
+     процессе диалога.)
+
+   : ==  CONSTANT ;                        : -- VARIABLE ;
+   0 ==  MEM                               '164000 == CSR
+   0 --  RES
+   : RD CSR ! @  ;                  ( чтение данных из модуля КАМАК)
+   : WT CSR ! !  ;               ( запись информации в модуль КАМАК)
+   : MAW MEM 17 WT ;                    ( запись в адресный регистр)
+   : MW MEM 16 WT ;                   ( запись кода в модуль памяти)
+   : MR MEM 0 RD                     ( чтение кода из модуля памяти)
+   : START ." MEMO BIN->" QUERY INTERPRET 32 * CSR + ' MEM  ! ;
+   : ERR ." ERR ADR="  . ." CODE=" U. ;      ( сообщение об  ошибке)
+   : RED ." READ=" U. CR ;
+   : MCLEAR 1024 0 DO I MAW 0 MW 0 MEM 2+ ! LOOP ;
+   : HTEST 0 MAW 1 15  0                       ( тест модуля памяти)
+	   DO  1024 0
+           DO I MAW DUP 2DUP DUP MW MR DUP RES ! - 0=
+              IF MEM 2+ 16 WT MEM 2+ 0 RD DUP RES ! -
+                 IF DUP I ." В " ERR RES @ RED
+                 THEN
+              ELSE DUP I ." A " ERR RES @ RED
+              THEN
+           LOOP 2 *
+        LOOP  ;
+
+                  Программа тестирования процессора с
+                     микропрограммным управлением
+
+      ( В  процессе  тестирования  с  диска  или  вручную  загружается
+   микропрограмма, вводятся исходные коды в память данных, запускается
+   микропрограмма   и   отображается  результат.  Предполагается,  что
+   аппаратура выполнена в стандарте КАМАК.)
+
+   '164000 == CSR   512 --  REND    0 -- PT   0 == MM    0 == PRO
+         0 -- BLO     0 --  STADR   0 == DM   0 -- STAD
+   : NU QUERY INTERPRET ;
+   : MMR MM 0 RD  ;                       ( операторы чтения-записи)
+   : MW DM 16 WT  ;                        ( запись в память данных)
+   : MR DM 0 RD ;                         ( чтение из памяти данных)
+   : MAW DM 17 WT ;                ( запись адреса  в память данных)
+   : MWW DM 6 + 17 WT ;
+   : MWR DM 4 + 17 WT ;
+   : ERM ." ILL ADR" U. ABORT ;               ( сообщение об ошибке)
+   : FADR ." FIRST ADR->"                  ( ввод начального адреса)
+          NU DUP 0< OVER 1023 > OR
+          IF ERM THEM ;
+   : BIN 32 * CSR + ;              ( вычисление КАМАК-адреса модуля)
+   : SHOW DUP C@ . 1+ ;
+   : LEV TI0 R> DROP ;
+   : DEL 1024 PT  @ - ;
+   : GET QUERY N# -DUP
+         IF 69 =
+            IF LEV
+            ELSE  INTERPRET
+            THEN
+         THEN ;
+
+   : TAKE MWR ." OLD.LS=" MR 5 U.R ." MS=" M2R 5 U.R I' MWW
+          ." NEW.LS=" GET N#
+          IF MW
+          THEN ." MS=" GET N#
+          IF M2W
+          THEN ;
+
+  : FILI BEGIN FADR 32767 SWAP ." <E>
+               IF END/JMP" CR
+                   DO ." ADR=" I 5 U.R I TAKE
+                   LOOP ." NEW ADR? <'N'/CR>" KEY  78 =
+         UNTIL KEY ;
+
+   : DELT R# @ DUP DEL >
+          IF DROP DEL
+          THEN DEL MINUS REND +! DUP MINUS R#  +! ;
+
+   ( Загрузка исходных данных)
+
+   : DLOD ." D-MEM BIN->" NU BIN ' DM ! FILI ;
+   : RECD DUP @ ." IC#=" . 2+ DUP @ DUP STAD ! ." START PC="
+          DUP 1- STADR ! . 4 + DUP @ ." BYTE/IC=" DUP  . ;
+   : PLUG 0 DO 2+ DUP SHOW SHOW SHOW C@ . CR DUP @
+               1 STADR +! STADR @ MMAW MMW 2+ DUP @ MM 2+ ! 4
+            +LOOP  DROP ;
+
+   ( Загрузка микропрограммы)
+
+   : MLOD ." M-MEM BIN-> " NU BIN ' MM ! ."BY  HAND? <Y/RET> "
+           KEY  '131 =
+           IF KEY MM  ' DM ! FILI
+           ELSE FILCH            ( загрузка микропрограммы из файла)
+                1 BLO ! 1 BLOCK DUP DUP ." MAXR=" @ . 2+
+                DUP ." COL=" @ . 2+ DUP ." ROW=" @ . 3 +
+                ." IC  DEPTH=" C@ . 520 + 520 PT ! CR RECD
+                R# !  CR ." IC TEXT" CR OCTAL
+                BEGIN DELT PLUG R# @
+		      IF 0 0 PT ! 1 BLO +! REND @
+                         IF BLO @ BLOCK
+                         ELSE 512 REND ! 8 RT ! RECD
+                         THEN
+                      ELSE 1
+                      THEN
+                UNTIL DEFOL DECIMAL 512 REND !
+           THEN ;
+   : GO STAD @ PRO  ! ;
+   : RESULT ." RESULT MEMADR-> " HU DUP MAW 1+ MR ." RESLT="
+            U. DM 2+ @ U. MAW ." [ADR+1]=" MR U. DM 2+ @ U. ;
+   : LODR ." PROCESSOR BIN-> " NU BIN ' PRO ! MLOD DLOD
+          GO RESULT ; (  пуск  процессора и распечатка  результата )

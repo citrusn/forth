@@ -1,0 +1,190 @@
+                          Приложение 1
+
+                      Экранный редактор EDT
+
+
+
+   Для дисплея СМ7209,  Электроника ИЭ15  и  их  аналогов;  ОС  RT-11.
+экранный  редактор  для персональной ЭВМ типа IBM PC имеет практически
+тот же объем, но предоставляет существенно большие возможности.)
+
+
+   : SET  0 36 ! ;                         ( установка режима в JSW)
+   : ES   27 EMIT ;                 ( передача кода ESC на терминал)
+   : $    VARIABLE ;
+   VOCABULARY EDITOR IMMEDIATE            ( описание словаря EDITOR)
+   : R@   R#  @ ;                ( запись в стек координаты курсора)
+   : OF   20480 36 ! ;             ( запись управляющего кода в JSW)
+   : G.   0 GL ! ;                        ( обнуление переменной GL)
+   : CR#  0 R# ! ; ( запись нуля в ячейку-указатель позиции курсора)
+   : R!   R# ! ;   ( запись кода в ячейку-указатель позиции курсора)
+   ED     -DUP IF SC ! CR# SC @ BLOCK DROP [COMPILE] EDITOR
+	       THEN ;                       ( чтение экрана в буфер)
+   EDITOR DEFINITIONS                ( начало описания процедур EDT)
+   ( описание массивов и переменных)
+   0 $ В 2 ALLOT      0 $ GL      0 $ SY      1 $ D      0 $ SC
+   0 $ LBF 64 ALLOT                                  ( буфер строки)
+   0 $ BF 1K ALLOT                                   ( "CUT"- буфер)
+   0 $ WBF 64 ALLOT                                   ( буфер слова)
+   : IL    7 EMIT ;                               ( звуковой сигнал)
+   : RC   13 EMIT ;                               ( возврат каретки)
+   : C#   R@ 64 MOD ;                   ( вычисление номера колонки)
+   : +C   R@ + 0 MAX 1023 MIN R! ;   ( изменение содержимого ячейки
+                            R# с учетом ограничения 0 <= R# <= 1023)
+   : L#   R@ 64 / ;                      ( вычисление номера строки)
+   : L*   L# 15 < ;                             ( последняя строка?)
+   : G    GL @ ;
+   : CA   SC @ BLOCK UPDATE R@ + ;  ( вычисление абсолютного адреса
+                    в буфере редактора и установка флага "спасения")
+   : LA   CA C# - ;      ( вычисление адреса первого байта в строке)
+   : TL   64 C# - ;         ( вычисление числа байт до конца строки)
+   : B#   0 BUFFER DUP 1K BLANKS ;    ( резервирование буфера и его
+                                        очистка)
+   : FX   RC 22811 PAD ! PAD 2+ ! PAD 4 TYPE ;   ( фиксация курсора
+                                            в заданной точке экрана)
+   : HT   8224 FX ;        ( установка курсора в начало поля команд)
+   : AL   1K R@ - CMOVE ;     ( вычисление числа байт от курсора до
+                                конца буфера)
+
+   : TY    L# 2 .R SPACE LA 64 TYPE 92 EMIT ;     ( печать строки с
+                                              символом  "\" в конце)
+   : SCL   HT ES 74 EMIT ;                         ( гашение экрана)
+   : V     64 +C ;                       ( перемещение курсора вниз)
+   : NX    TL +C CA ;   ( вычисление адреса первого байта следующей
+		          строки)
+   : ^     -64 +C ;                     ( перемещение курсора вверх)
+   : >>    1 +C ;      ( перемещение курсора на одну позицию вправо)
+   : <<    -1 +C ;      ( перемещение курсора на одну позицию влево)
+   : LE    TL 1- ;
+   : LB    0 C# - +C RC ;       ( возврат в начало следующей строки)
+   : D@    D @ ;
+   : BLA   TL BLANKS ;           ( очистка строки справа от курсора)
+   : D?    D@ 1+ ;         : F@ BF @ ;
+   : LCL   HT ES 75 EMIT ;               ( очистка командной строки)
+   : OL    В# LA OVER AL LB LA BLA L*     ( открывание новой строки)
+           IF V CA AL ^ ELSE DROP THEN ;
+   : EDG   D?                                        ( край строки?)
+           IF C# 63 < ELSE C# 0 > THEN ;
+   : PUT   LBF CA TL CMOVE ;  ( перенос содержимого буфера в строку)
+   : CB    0 В ! ;
+   : LI    R@ R@ 0=       ( распечатка текста редактируемого экрана)
+           IF SCL CR CR ." SC# " SC ? CR CR
+           THEN LB 16 L# - 0
+           DO TY V CR LOOP R! ;
+   : CBF   LBF 64 BLANKS ;                  ( очистка буфера строки)
+   : GAP   CBF CA LBF TL CMOVE ;  ( засылка части строки в строчный
+                                    буфер)
+   : ^W    ES 61 EMIT CR# LI ;       ( "освежение" текста на экране)
+   : ON    L# 36 + C# 35 + SWAB + FX ;  ( приведение в соответствие
+                                      позиции курсора и содержимого
+                                       ячейки-указателя его позиции)
+   : BUP   G IF G. CR# ELSE -1 D ! THEN ;         ( изменение флага
+                                            направления перемещения)
+   : LINE  G IF G. OL LI ELSE LB D@ 64 * +C THEN ;
+   : SHW   RC TY ;                      ( "освежение" текста строки)
+   : .TO   BEGIN CA C@ BL = OVER
+	     IF 0= THEN EDG *
+           WHILE D@ C+
+           REPEAT DROP ;
+   : WST   0 .TO 1 .TO ;                          ( шаг "по словам")
+   : ..    GAP CA C! LE IF >> PUT THEN ;
+   : DS    G        ( стирание символа, на который указывает курсор)
+           IF G. SY С@ ..                  ( восстановление символа)
+           ELSE CA C@ SY C! LE
+		IF >> GAP << PUT ELSE BL CA C! THEN
+           THEN SHW ;
+   : DEL   << DS ;              ( стирание символа слева от курсора)
+   : SS    .. SHW ;       ( ввод символа и печать измененной строки)
+   : DL    G                       ( стирание-восстановление строки)
+           IF G. C# 0=
+	      IF OL THEN PUT SHW
+           ELSE GAP C# 0= L* *
+	      IF V B# CA OVER AL ^ CA AL  ELSE  CA BLA  THEN
+           THEN ;
+   : DLL   DL LI ;            ( стирание строки и распечатка текста)
+   : PAGE  G   ( вызов следующего экрана или уход в режим "команда")
+           IF G. HT ." COMMAND: " SET QUERY LCL INTERPRET OF
+           ELSE FLUSH D@ SC +! ^W
+           THEN ;
+   : QUIT  ES 62 EMIT EMPTY-BUFFERS SCL SET ABORT ;       ( уход из
+             редактора без записи отредактированного текста на диск)
+   : .T    G                               ( выделение части текста)
+           IF G. CB ELSE R@ B 2+ ! 1 В ! THEN ;
+   : EXIT  FLUSH QUIT ;   ( уход из редактора с записью результатов
+                            редактирования на диск)
+   : GLD   1 GL ! ;
+   : EL    LE D@ 64 * + +C ;     ( установка курсора в конец строки)
+   : DW    G                        ( стирание-восстановление слова)
+           IF G. GAP WBF 2+ CA                     ( восстановление)
+              WBF @ TL MIN DUP +C CMOVE C# 0=
+              IF <<
+              THEN LE
+              IF PUT
+              THEN
+	   ELSE R@ WST RB D?                             ( стирание)
+              IF SWAP
+              THEN OVER R! DUP LE
+                   IF GAP
+                   ELSE CBF 1- SWAP
+		   THEN R! - DUP WBF ! CA WBF 2+ ROT CMOVE PUT
+           THEN SHW ;               ( отображение измененной строки)
+   : WIPE  CR# CA 1K BLANKS ^W ; : HP ;      ( стирание содержимого
+                                               экрана)
+   : ^L    G                           ( перенос и соединение строк)
+           IF G. R@ L*
+	      IF V LB DL R! PUT THEN
+           ELSE GAP CA BLA V OL PUT ^
+           THEN LI ;
+   : ++    G                   ( перемещение курсора в конец экрана)
+           IF G. 1023 R!
+           ELSE 1 D !
+	   THEN ;
+   : CUT   B# >R G       ( вырезание и вставление фрагментов текста)
+           IF G. R@ R@ GAP NX R AL R! BF 2+ CA F@ CMOVE F@
+	      +C PUT R> NX AL R!
+           ELSE В @
+		IF GAP CA L*
+	           IF NX R AL THEN В 2+ @ R! CA - DUP 0>
+		   IF BF ! CA BF 2+ F@ CMOVE PUT R@ R> NX AL R!
+		   ELSE R> 2DROP IL
+                   THEN
+                ELSE LEV IL
+                THEN
+           THEN ON LI CB ;
+
+   : SEE   G                    ( поиск последовательности символов)
+           IF G. HT ." MODEL: " SET QUERY 1 WORD OF LCL
+           THEN R@ R@ D?
+           IF 1K SWAP - THEN 0
+           DO D@ +C CA HERE COUNT OVER + SWAP
+                 DO DUP C@ I C@ -
+	            IF DROP 0 LEAVE THEN 1+
+                 LOOP 1-
+                    IF DROP R@ LEAVE THEN
+           LOOP R! ;
+
+   ( список управляющих символов)
+
+   3099 $ L1 6015 , 8 , 16961 , 17220 , 20561 , 16210 ,
+   28272 , 29042 , 29556 , 30070 , 30584 , '46571 ,
+   : TT    0            ( декодировка и выполнение команд редактора)
+           DO 2DUP I + C@ =
+	     IF 2DROP LEAVE I 12 - THEN
+           LOOP DUP 0<
+	   IF 12 + 2* + @ EXECUTE
+           ELSE DROP DUP 31 >
+		IF SS ELSE DROP IL THEN
+           THEN ;
+   ( команды-списки редактирующих операторов)
+   : T3    LINE .T EL WST ++ CUT DS BUP SEE PAGE DW IL ;
+   : .P    ' T3 KEY L1 14 + 12 TT ;
+   : T2    ^ V << >> HP GLD DLL .P ;
+   : P.    ' T2 KEY LI 6 + 8 TT ;
+   : T1    P. ^L DEL ^W DEL ;
+   FORTH DEFINITIONS         ( словарь FORTH снова стал контекстным)
+   : EDT   ED EDITOR LI ON ES 61 EMIT OF CB   ( вызов редактора EDT)
+           BEGIN ' T1 KEY L1 5 TT ON 0 UNTIL ;
+   : COPY  SWAP BLOCK CFA ! UPDATE FLUSH ;  ( копирование экранов в
+                                  пределах одного файла: N1 N2 COPY)
+   : GDE   ." SCR=" PREV @ @ . R@ 64  / ." LINE=" . ;( поиск ошибок
+                                                       при загрузке)

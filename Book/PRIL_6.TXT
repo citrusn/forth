@@ -1,0 +1,56 @@
+                           Приложение 6
+
+           Программа подготовки автономной версии Форта
+
+
+   ( Для гибкого 5"-диска типа "6022" или его аналога;  ОС RT-11)
+
+   : SIZETST 1024 9 * 256 - HERE U<       ( контроль объема словаря)
+             IF  ." TOO BIG" QUIT THEN ;
+     SIZETST FORGET SIZETST
+     LATEST 4 +ORIGIN ! HERE 20 +ORIGIN ! HERE 18 +ORIGIN !
+   : WRITE.INT 62 52 DO I 52 - 1024 * 512 + ( откуда)
+               I BLOCK  ( куда)
+               1024 CMOVE  UPDATE LOOP FLUSH ;
+   WRITE.INT 6 LOAD                      ( загрузка Форт-ассемблера)
+   ASSEMBLER DEFINITIONS OCTAL ( начало описания операторов словаря
+                                 ASSEMBLER)
+   0 VARIABLE TI$
+   : *TIM 100 # RO MOV
+          *BEGIN 200 # R4 () BIS
+                 *BEGIN R4 () TSTB MI
+                 *UNTIL 200 # R4  () BIC RO DEC LE
+          *UNTIL PC RTS ;
+   : *INI 50000 # SP    MOV
+         177130 # R4    MOV
+           1000 # R5    MOV
+             10 # R1    MOV
+             24 # SP -) MOV
+             SP () R3   MOV
+          10040 # R4 0  BIC  ;
+
+   : STEP    20 # R4 () BIS PC TI$ @ JSR  ;
+   : *TO *BEGIN *STEP 4000 # R4 () BIT NE  *UNTIL ;
+   : *WT *BEGIN R4 () TST MI *UNTIL ;
+   : TRK 40 # R4 () BIS *BEGIN *STEP R3 DEC LE *UNTIL ;
+   : TRB 40000 # R4 () BIC
+         40000 # R4 () BIS *WT 177132 @# TST
+         *WT 177132  @# R2 MOV ;
+   : *ER R1 DEC LE  *IF HALT *THEN ;
+   : *READ *BEGIN *TRB R2 SP () CMP NE
+                  *IF *ER
+                  *ELSE 13 # R2 MOV SP -)  CLR
+                        *BEGIN 200 # R3 MOV   RO CLR
+                              *BEGIN  *WT 177132 @# R5 () MOV
+                                     R5 )+ RO ADD, R3 DEC, LE
+                              *UNTIL *WT 177132 @# RO CMP  NE
+                                     *IF *ER R2 CLR SP () INC
+                                     *THEN R2 DEC LE
+                        *UNTIL SP )+ TST EQ
+                               *IF SP () INC *STEP *THEN
+                  *THEN  27 # SP () CMP LE
+           *UNTIL 1000 @# JMP ;
+   137 45000 ! 45004 DP ! HERE TI$ ! *TIM HERE 45000 - 45002 !
+   *INI *TO *TRK *READ 45000 0 0 WTS 45400 0 1 WTS         ( запись
+                                       программы первичной загрузки)
+   FORGET WRITE.INT DECIMAL

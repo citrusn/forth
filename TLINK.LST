@@ -1,0 +1,116 @@
+Turbo Assembler	 Version 3.1	    04/07/20 09:43:33	    Page 1
+LINETEST.ASM
+
+
+
+      1				     .286
+      2	0000			     .model tiny
+      3	0000			     .code
+      4				     org 100h
+      5	0100			     start:
+      6
+      7	0100  0032		     x dw 50
+      8	0102  0046		     y dw 70
+      9	0104  003C		     n dw 60
+     10	0106  DC		     color db 220
+     11
+     12	0107  B4 0F		     mov ah,0Fh	;запомнить видеорежим
+     13	0109  CD 10		     int 10h
+     14	010B  A2 0121r		     mov videor,al
+     15
+     16	010E  B8 0013		     mov ax,13h
+     17	0111  CD 10		     int 10h;установили	видеорежим 256x320x200
+     18
+     19	0113  E8 000D		     call LineDraw ;рисуем линию
+     20
+     21	0116  B4 00		     mov ah,0 ;ждем нажатия на клавишу
+     22	0118  CD 16		     int 16h
+     23
+     24	011A  A1 0121r		     mov ax,word ptr videor ;восстановить видеорежим
+     25	011D  CD 10		     int 10h
+     26
+     27	011F  CD 20		     int 20h ;выход из программы
+     28	0121  00 00		     videor db 0,0
+     29
+     30	0123			     LineDraw proc
+     31				     ;предварительные установки
+     32	0123  68 A000		     PUSH 0A000h
+     33	0126  07		     POP ES; позиционируем ES на область видеопамяти
+     34	0127  8B 3E 0100r	     MOV DI,X ;	в DI координаты	начальной точки	по X
+     35	012B  B8 0140		     MOV AX,320; длина строки экрана
+     36	012E  F7 26 0102r	     MUL Y; умножаем на	Y
+     37	0132  03 F8		     ADD DI,AX;	и складываем с X
+     38	0134  A0 0106r		     MOV AL,COLOR; цвет	линии
+     39
+     40				     ; рисуем горизонтальную линию
+     41	0137  8B 0E 0104r	     MOV CX,N; длина линии
+     42	013B  F3> AA		     REP STOSB
+     43
+     44				     ;Вертикальную линию обычно	рисуют циклом
+     45	013D  8B 0E 0104r	     MOV CX,N; длина линии
+     46	0141  26: 88 05		     A1: MOV ES:[DI],AL; рисуем	точку на строке
+     47	0144  81 C7 0140	     ADD DI,320; переход на следующую строку
+     48	0148  E2 F7		     LOOP A1
+     49
+     50				     ;диагональную линию с наклоном влево можно	нарисовать циклом
+     51	014A  8B 0E 0104r	     MOV CX,N; длина линии
+     52	014E  26: 88 05		     A2: MOV ES:[DI],AL; рисуем	точку на строке
+     53	0151  81 C7 013F	     ADD DI,319; переход на следующую строку
+     54	0155  E2 F7		     LOOP A2
+     55
+     56				     ;диагональную линию с наклоном вправо — циклом
+     57	0157  8B 0E 0104r	     MOV CX,N; длина линии
+Turbo Assembler	 Version 3.1	    04/07/20 09:43:33	    Page 2
+LINETEST.ASM
+
+
+
+     58	015B  26: 88 05		     A3: MOV ES:[DI],AL; рисуем	точку на строке
+     59	015E  81 C7 0141	     ADD DI,321; переход на следующую строку
+     60	0162  E2 F7		     LOOP A3
+     61
+     62	0164  C3		     ret
+     63	0165			     LineDraw endp
+     64
+     65				     end start
+Turbo Assembler	 Version 3.1	    04/07/20 09:43:33	    Page 3
+Symbol Table
+
+
+
+
+Symbol Name		Type   Value			   Cref	(defined at #)
+
+??DATE			Text   "04/07/20"
+??FILENAME		Text   "LINETEST"
+??TIME			Text   "09:43:33"
+??VERSION		Number 030A
+@32BIT			Text   0			   #2
+@CODE			Text   DGROUP			   #2
+@CODESIZE		Text   0			   #2
+@CPU			Text   0707H			   #1
+@CURSEG			Text   _TEXT			   #3
+@DATA			Text   DGROUP			   #2
+@DATASIZE		Text   0			   #2
+@FILENAME		Text   LINETEST
+@INTERFACE		Text   00H			   #2
+@MODEL			Text   1			   #2
+@STACK			Text   DGROUP			   #2
+@WORDSIZE		Text   2			   #1  #3
+A1			Near   DGROUP:0141		   #46	48
+A2			Near   DGROUP:014E		   #52	54
+A3			Near   DGROUP:015B		   #58	60
+COLOR			Byte   DGROUP:0106		   #10	38
+LINEDRAW		Near   DGROUP:0123		   19  #30
+N			Word   DGROUP:0104		   #9  41  45  51  57
+START			Near   DGROUP:0100		   #5  65
+VIDEOR			Byte   DGROUP:0121		   14  24  #28
+X			Word   DGROUP:0100		   #7  34
+Y			Word   DGROUP:0102		   #8  36
+
+Groups & Segments	Bit Size Align	Combine	Class	   Cref	(defined at #)
+
+DGROUP			Group				   #2  2
+  _DATA			16  0000 Word	Public	DATA	   #2
+  _TEXT			16  0165 Word	Public	CODE	   #2  #3
+

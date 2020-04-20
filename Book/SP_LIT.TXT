@@ -1,0 +1,90 @@
+                      СПИСОК ЛИТЕРАТУРЫ
+
+
+1.  Brodie L. Staring FORTH. - Prentice-Hall, 1981.
+2.  Vickers S. FORTH Pocket Guide. - Pitman Press, 1984.
+3.  FORTH inc. Using FORTH. - FORTH Inc., 1979.
+4.  Scanlon L.J. FORTH Programming. - H.W.Sams, Indianapolis, 1983.
+5.  Salman W.P. FORTH. - Macmillan Publishers, Computer Science
+    Series, 1984.
+6.  Haydon All About FORTH. - Mountain View Press, 1983.
+7.  Hicks S.M. FORTH:  A Cost Saving Approach to Software
+    Development. - Wescon /Los Angeles, 1978.
+8.  Hogan Т.Discover FORTH: Learning and Programming the FORTH.
+    - Osborn: McGraw-Hill, 1982.
+9.  Katzan H. Invitation to FORTH. - Petrocelli Books, 1981.
+10. Knecht К.В. Introduction to FORTH. - H.W.Sams, 1982.
+11. Loeliger R.G. Threaded Interpretive Languages. - Byte Books, 1981.
+12. Ting C.H. System Guide to FORTH. - Offete Enterprise Inc., 1983.
+13. Winfield A. Complete FORTH. - Sigma Technical Press, 1983.
+14. Kelly Mahlon G., Spies N. FORTH. A Text and Reference.
+    - Prentice-Hall, 1986.
+15. Tello E. PolyFORTH and PC/FORTH//BYTE. - 1984. - Vol. 9, N 12.
+    - P. 301-313.
+16. Walker R.V., Rather E.D. PolyFORTH II: Reference Manual. - S.
+    L. FORTH Inc., 1983. - 524р.
+17. Ragsdale W.F. FIG-FORTH Installation Manual: Classary.
+    - San Carlos: FORTH Interest Group, 1980. - 61 p.
+18. FORTH-83 Standard. - Mountain View (USA): FORTH Standard Team,
+    1983. - 82 p.
+19. Reynolds A.J. Advanced FORTH. - Wilmslow: Sigma Press Publishers.
+    - 1986.
+20. Rather E., Brodie L. Using FORTH. - FORTH Inc., 1980.
+21. DECUS FORTH  Programming System for PDP-11. - 1975. (DECUS,
+    № 11-232).
+22. Семенов  Ю.А. Язык  четвертого поколения FORTH.  - Препринт.
+    -  M., 1984. - (ИТЭФ, № 30).
+23. FORTH Extensibity. Or How to Write a Compiler in 25 Words
+    or Less. Kim Harris. - Byte Publishers Inc., 1980.
+24. Вульф А. Операционные системы реального времени в русле развития
+    вычислительной техники //Электроника. - 1985. - № 17. - С. 46-56.
+25. MVP-FORTH PADS. - Mountain View Press Inc., 1983.
+26. MVP-FORTH EXPERT  System. - Mountain View Ptess Inc., 1984.
+27. Семенов Ю.А. Управляющий язык FORTH: Рекомендации по
+    программированию. - Препринт. - M., 1984. - (ИТЭФ, № 63).
+28. Семенов Ю.А. Системный пакет программ для FORTH. - Препринт.
+    - M., 1985. - (ИТЭФ, № 72).
+29. Семенов Ю.А. Экранный редактор для системы FORTH. - Препринт.
+    - M., I985. - (ИТЭФ, № 73).
+30. Семенов Ю.А. Новая версия системы FORTH. - Препринт. - M., 1986.
+    - (ИТЭФ, № 25).
+31. Семенов Ю.А. Программные средства ЭВМ "Электроника-60" для работы
+    с микропроцессорами //12-й Международ, симп. по ядерной
+    электронике. - Дубна, 1985.
+32. Диалоговые микропроцессорные системы /Под ред. H.П.Брусенцова и
+    А.M.Шаумана. - M.: Изд-во МГУ, 1986. - 148 с.
+33. Семенов Ю.А. О возможности FORTH при автоматизации физического
+    эксперимента //4-и Всесоюз. семинар по автоматизации научных
+    исследований в ядерной физике и смежных областях. - Протвино,
+    1986.
+34. Семенов Ю.А. Программа-справочник по цифровым интегральным схемам
+    на языке Форт. - Препринт. - М., 1987. - (ИТЭФ, № 97).
+35. Баранов С.Н., Ноздрунов Н.Р. Язык Форт и его реализации. - Л.:
+    Машиностроение, 1988. - (Сер. ЭВМ в производстве).
+36. Баранов С.Н. Система Форт-ЕС. -Препринт. - Л., 1986.
+    - (ЛИИАН, № 1).
+37. Демидович  Б.П., Марон И.А. Основы вычислительной математики.
+    - М.: Наука, 1966.
+38. RT-11 Software Support Manual. - DES Maynard Massachusetts, 1980.
+39. Семенов Ю.А. Многозадачная версия Форт. - Препринт. - М., 1988.
+    - (ИТЭФ, № 167).
+40. Барии К. Плата Форт-процессора для персонального компьютера
+    PC IBM //Электроника. - 1985, - № 17. - С. 46.
+41. Каррен К. Новое изделие фирмы HARRIS, соединяющее в себе PISK
+    -архитектуру и язык Форт //Электроника. - 1987. - № 11. - С. 6.
+42. ГОСТ 26.201-80. Единая система стандартов приборостроения.
+    Система КАМАК. Крейт и сменные блоки. Требования к конструкции
+    и интерфейсу.
+43. OEM Boards and System Handbook/Intel. - Santa Clara, 1987.
+44. Семенов  Ю.А. Ассемблер для микропрограммирования и его
+    реализация на ЭВМ "Электроника-60". - Препринт. - М., 1984.
+    - (ИТЭФ № 154).
+45. PASHA - an Approach to Computer-aided Hardware Debugging
+    /R. C. Agostini, Н. V. Walz, D. B. Gustayson, L. Barker.
+    - SLAC-PUB-4766 (REV), 1988, Nov.
+46. Астановский Ф.Г., Ломунов В.Н.  Интерпретирующие системы
+    программирования и их аппаратная поддержка.  Процессор,
+    ориентированный на язык Форт. - Таллинн: Ин-т кибернетики АН
+    ЭССР, 1988.
+47. PDP-11 Peripherals Handbook. - DEC, 1984.
+

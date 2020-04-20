@@ -1,0 +1,50 @@
+			    Приложение 7
+
+          Программа чтения оглавления диска  (для RT-11)
+
+
+
+   ( Для дисковода PLX-45, ОС RT-11)
+
+   : ASC         ( преобразование одиночного кода RAD50 в ASCII-код)
+	  DUP
+          IF DUP  27 =
+             IF DROP  36
+             ELSE  DUP 27 <
+                IF  64 +
+                ELSE  DUP 40 <
+                  IF 18 +
+                  ELSE DROP BL                  ( если код не узнан)
+                  THEN
+                THEN
+             THEN
+          ELSE DROP 32                       ( если RAD50=0, пробел)
+          THEN  ;
+   : RASC
+            0 DO
+            DUP I 3 * + >R OVER I' 2* + @ 0 40 U/ SWAP ASC R
+            2+ C! 40 /MOD SWAP ASC R 1+ C! ASC R> C!
+              LOOP 2DROP ;
+
+   0 VARIABLE NM 4 ALLOT
+   : $R   NM 3 RASC NM 3 TYPE ;
+   : #L    DUP 8 + @ DUP 5 .R
+   : TAB   11 SPACES ;
+   : DAT   -DUP                    ( декодировка даты создания файла)
+           IF 32 /MOD 32 /MOD SWAP 4 .R 1- 10
+           45 EMIT * 7 - ' JAN + 3 TYPE 45 EMIT 72 + 2 .R
+           ELSE TAB THEN ;
+   : $NM 2+ DUP $R 2+ DUP $R  46 EMIT 2+ $R ;
+   : DRL 0 >R 0 R# ! 0 CSP !
+          BEGIN DUP @ DUP 2048 -
+          WHILE R> 1+ >R DUP 1K <
+            IF ." < EMPTY > " DROP #L DROP TAB
+            ELSE 1 R# +! SWAP DUP $NM #L CSP +! SWAP '102000 =
+                 IF 80 EMIT THEN DUP 12 + @ DAT
+            THEN R 2 MOD
+                 IF 3 SPACES ELSE CR THEN 14 +
+          REPEAT CR R# ? ." FILES " 212 CSP @ DUP .
+          ." BLOCKS" CR - . ." FREE BLOCKS" LEV ;
+
+   : DIR FLUSH 11 ' SKIP >R R ! 1 BLOCK 10 + DRL  15 R> ! SP!
+	 'EMPTY-BUFFERS ;                          ( FIG-FORTH)
