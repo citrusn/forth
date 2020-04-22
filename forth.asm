@@ -7,6 +7,7 @@
 masm
 .8086
 .MODEL SMALL
+LOCALS
 LINK=0
     .LALL
     ; Макроопределения
@@ -14,7 +15,7 @@ LINK=0
     HEAD  MACRO length,name,lchar,labl,code
     LINK$=$
         DB  length  ; NFA 7 бит равен 1.
-                    ; 6 - признак immediate. 5- слово не описано
+                    ; 6 - признак immediate. 5- слово не описано smudge
         IFNB <name>
         DB  NAME
         ENDIF
@@ -29,18 +30,18 @@ LINK=0
         ENDIF
         ENDM
 
-debug equ 0
-
     NEXT MACRO   ; переход к исполнению следующего слова
-
+        local m1 
         LODSW           ; DS:[SI] -> AX ; SI = SI + 2
         MOV  BX, AX     ; BX равен CFA  следующего слова
-        if debug
-            ;mov ax, si
-            call printWORD
-            call pause                 
-        endif
-        JMP WORD PTR [BX] ; 
+    ; ------ call debugger --------    
+        cmp byte ptr [di+102Q], 0   
+        jz m1
+        call printWORD
+        call pause                 
+    m1: 
+    ; -----------------------------
+        JMP WORD PTR [BX] 
         ENDM
 
   TITLE   FORTH Interpreter
@@ -62,7 +63,8 @@ debug equ 0
    XUP     DW  102 DUP(0)              ; USER-область на нее указывает DI
 
    $STI    DW  TASK-7  ;               ; Стартовая таблица PFA слова TASK
-   $US     DW  XUP     ;               ; адрес user области
+   $US     DW  XUP     ;    
+              ; адрес user области
    ;    переменные
    $STK    DW  XS0     ;+6              ; SO   
    $RS     DW  XR0     ;+8              ; RO стек возвратов
@@ -99,6 +101,7 @@ debug equ 0
              MOV   CX, $BUF         ; TO 'USE'
              MOV   [BX]+72Q,CX      ; USE ? адрес блока
              MOV   [BX]+74Q,CX      ; PREV ? адрес блока
+             MOV   word ptr [BX]+102Q,00h      ; отладка выключена
              MOV   CX, 10           ; Установка счетчика USER (14Q надо на 2 меньше уже)
              MOV   DI, $US          ; Запись адреса области USER
              ADD   DI, 6            ; почему 6.... ? User переменные начинаются с 6 адреса
@@ -108,6 +111,7 @@ debug equ 0
              MOV   BP, $RS          ; Установка начального значения
                                     ; указателя стека возвратов
                                     ; пересекается с областью TIB
+                                    ; RS растет в область с меньшими адресами
              MOV   DI, $US
              MOV   WORD PTR [DI+32Q],7  ; Установка цвета вывода текста
              MOV   WORD PTR [DI+42Q],0  ; Сброс флага печати
@@ -119,31 +123,141 @@ $INI      ENDP
 
 ; ждем нажатия клавиши, по Q выход из программы
 pause proc
+    @start:
         xor ax, ax
         int 16h ; AL = ASCII символ (если AL=0, AH содержит расширенный код ASCII )
                 ; AH = сканкод  или расширенный код ASCII
-        cmp ah, 10H ; клавиша Q (quit)
-        jnz @1
-        mov ah,4Ch
+        cmp ah, 10h ; клавиша Q (quit)
+        je @e
+        cmp ah, 20h ; клавиша D (debug off)
+        je @d
+        cmp ah, 1Fh ; клавиша S (show stack)
+        je @s
+        cmp ah, 13h ; клавиша R (show return)
+        je @rs
+        cmp ah, 31h ; клавиша N (next step)
+        je @r
+        cmp ah, 11h ; клавиша W(next word from dict)
+        je @v
+        jmp @start
+    @e: mov ah, 4Ch ; выход из программы
         int 21h
-    @1: ret
+    @v: call showWD
+        jmp @start
+    @rs: call showRS
+        jmp @start
+    @s: call showStack
+        jmp @start
+    @d: mov word ptr [DI]+102Q,00h  ; отладка выключена
+        ;jmp @start
+    @r: ret
 pause endp
+
+proc showWD
+    push di
+    push bx
+    mov dx, offset @@caption
+    call outText
+    mov di,OFFSET @@ASCII ;
+    mov ax, [si]
+    call toHex
+    mov dx, offset @@ASCII 
+    call outText
+    call outCR
+    pop bx
+    pop di
+    ret
+    @@caption DB "NEXT WORD:  $" 
+    @@ASCII DB "0000    $" 
+showWD endp
+
+showStDump proc
+    shr cx, 1   ; байты в слова
+    or cx , cx
+    jz @@r
+    mov ax, ss
+    mov es, ax         
+  @@l:
+    dec bx
+    dec bx
+    mov ax, es:[bx]    
+    push bx
+    mov di, dx
+    call toHex        
+    ;mov dx, offset @@ASCII
+    call outText
+    pop bx
+    loop @@l
+  @@r: 
+    ret        
+showStDump endP
+
+showRS proc
+    push di
+    push si
+    push es
+    push bx
+    mov dx, offset @@caption
+    call outText    
+    mov cx, offset XR0
+    mov bx, BP
+    sub cx, bx
+    mov dx, offset @@ASCII
+    mov bx, offset XR0
+    call showStDump    
+  @@r:    
+    call outCR
+    pop bx
+    pop es 
+    pop si
+    pop di
+    ret    
+    @@caption DB "RS:  $" 
+    @@ASCII DB "0000 $" 
+showRS endP
+
+showStack proc    
+    push di
+    push si
+    push es
+    push bx
+    mov dx, offset @@caption
+    call outText    
+    mov cx, 80h
+    mov bx, SP
+    add bx, 2*6   ; столько лишних элементов стеке
+    sub cx, bx
+    mov bx, 80h
+    mov dx, offset @@ASCII
+    call showStDump    
+  @@r:    
+    call outCR
+    pop bx
+    pop es 
+    pop si
+    pop di
+    ret    
+    @@caption DB "STACK:  $" 
+    @@ASCII DB "0000 $" 
+showStack endP
 
 ; AX- значение для печати в 16 виде
 ; di - адрес строки для вывода
 toHex PROC        
+    push cx
     mov cl,4            ; number of ASCII
-P1: rol ax,4           ; 1 Nibble (start with highest byte)
+@@1: rol ax,4           ; 1 Nibble (start with highest byte)
     mov bl,al
     and bl,0Fh          ; only low-Nibble
     add bl,30h          ; convert to ASCII
     cmp bl,39h          ; above 9?
-    jna short P2
+    jna short @@2
     add bl,7            ; "A" to "F"
-P2: mov [di],bl         ; store ASCII in buffer
+@@2: mov [di],bl         ; store ASCII in buffer
     inc di              ; increase target address
     dec cl              ; decrease loop counter
-    jnz P1              ; jump if cl is not equal 0 (zeroflag is not set)
+    jnz @@1              ; jump if cl is not equal 0 (zeroflag is not set)
+    pop cx
     ret
 toHex endP
 
@@ -152,27 +266,34 @@ toHex endP
 ; заполнение пробелом
 blankBuffer proc
     push di
-    @@:
-    mov byte ptr [di], 32
-    inc di
-    loop @@
-    pop di
+    cld
+    mov al, 32
+    rep stosb 
+    pop di    
     ret
 blankBuffer endp 
 
 ; вывод адреса и имени слова
 ; AX- значение адреса
 printWORD proc
-    ;local label m, m1
     push di
     push si
     push bx
     push ax
     mov di,OFFSET ASCII ; get the offset address
-    mov cx, 20
+    mov cx, 25
     call blankBuffer
+    ; печать адреса слова
+    mov ax, si
+    sub ax, 2 
     call toHex
-    inc di  ; вывод текста после адреса
+    inc di
+    inc di
+    ; печать CFA слова
+    pop ax
+    push ax
+    call toHex
+    inc di  ; вывод имени слова после его адреса
     pop bx ; адрес слова CFA?
     ;mov al, byte ptr [bx-3] ; последний символ слова
     SUB bx, 3   ; 
@@ -188,20 +309,30 @@ printWORD proc
     and al, 7Fh ;   последний символ увеличен на 80h    
     mov [di],al
     inc di    
-    loop mmm1
-    ;-----------------------
+    loop mmm1    
     ; Print string
-    ;-----------------------
     mov dx,OFFSET ASCII ; DOS 1+ WRITE STRING TO STANDARD OUTPUT
-    mov ah,9            ; DS:DX->'$'-terminated string
-    int 21h             ; maybe redirected under DOS 2+ for output to file
-                        ; (using pipe character">") or output to printer
+    call outText       
     pop bx
     pop si
     pop di
     ret
-    ASCII DB "0000                ",0Dh,0Ah,"$" ; buffer for ASCII string              
+    ASCII DB "0000: 0000                ",0Dh,0Ah,"$" ; buffer for ASCII string              
 printWORD endP
+
+outCR proc
+    mov ah,9            ; DS:DX->'$'-terminated string
+    lea dx, @@cr
+    int 21h             ; (using pipe character">") or output to printer
+    ret
+    @@cr DB 0Dh, 0Ah, "$"
+outCR endp
+
+outText proc    
+    mov ah,9            ; DS:DX->'$'-terminated string
+    int 21h             ; (using pipe character">") or output to printer
+    ret
+outText endp
 
    ; BX - WP находится адрес исполняемого слова 
    ; SI - IP-регистр    должен сохраняться
@@ -1374,19 +1505,28 @@ printWORD endP
 
             HEAD     83h,'US',305Q,USE,$USE              ; USE
             DW 72Q ;
+            ; A variable containing the address of the block buffer to use next,
+            ; as the least recently written.
 
             HEAD     84h,'PRE',326Q,PREV,$USE            ; PREV
-            DW 74Q ; адрес экранного блока
+            DW 74Q ; адрес экранного блока 
+            ; A variable containing the address of the disc buffer most recently
+            ; referenced. The UPDATE command marks this buffer to be later written
+            ; to disc.
 
             HEAD     83h,'$E',330Q,$EX,$USE              ; EXP
             DW 76Q  ; целочисленное значение  порядка  числа,  
-                    ; который  следует  за признаком Е
+                    ; который  следует  за признаком Е                    
 
             HEAD     83h,'ER',302Q,ERB,$USE              ; ERB
             DW 100Q ; 64d 40h
             ; Если ERB=0,  ERROR  работает  обычным  образом,  в противном случае
             ; переменная ERB обнуляется,  а уход из  программы  в  Форт  через  QUIT
             ; блокируется.
+
+            HEAD     83h,'DE','B'+80h,DEB,$USE              ; DEB
+            DW 102Q  ; признак отладки
+                    ; 
 
         ;** Слова высокого уровня **
 
@@ -1753,10 +1893,10 @@ printWORD endP
              DW  HERE,SUBB,COMMA,SEMI
 
              HEAD    305Q,'BEGI',316Q,BEGIN,$COL          ; BEGIN
-             DW  QCOMP,HERE,ONE,SEMI
-
-             HEAD    304Q,'THE',316Q,THEN,$COL            ; THEN
-             DW  QCOMP,TWO,QPAIR,HERE,OVER,SUBB,SWAP,STORE,SEMI
+    ; BEGIN ... UNTIL
+    ; BEGIN ... AGAIN
+    ; BEGIN ... WHILE ... REPEAT
+             DW  QCOMP,HERE,ONE,SEMI             
 
              HEAD    302Q,'D',317Q,$DO,$COL               ; DO
              DW  COMP,XDO,HERE,THREE,SEMI
@@ -1770,6 +1910,12 @@ printWORD endP
              HEAD    305Q,'UNTI',314Q,UNTIL,$COL          ; UNTIL
              DW  ONE,QPAIR,COMP,ZBRAN,BACK,SEMI
 
+            HEAD    305Q,'AGAI','N'+80h,AGAIN,$COL        ; AGAIN sds
+            DW  ONE,QPAIR,COMP,BRAN,BACK,SEMI
+
+             HEAD    305Q,'WHIL',305Q,$WHILE,$COL         ; WHILE
+             DW  $IF,SEMI
+
              HEAD    306Q,'REPEA',324Q,REPEA,$COL        ; REPEAT
              DW  ROT,ONE,QPAIR,ROT,COMP,BRAN,BACK
              DW  THEN,SEMI
@@ -1778,11 +1924,32 @@ printWORD endP
              DW  COMP,ZBRAN,HERE,ZERO,COMMA,TWO,SEMI
 
              HEAD    304Q,'ELS',305Q,$ELSE,$COL           ; ELSE
-             DW  TWO,QPAIR,COMP,BRAN,HERE,ZERO,COMMA
-             DW  SWAP,TWO,THEN,TWO,SEMI
+             DW  TWO,QPAIR,COMP
+             DW  BRAN,HERE,ZERO,COMMA   ; если исполнение пришло к этому BRAN
+                                        ; значит была выполнена ветка TRUE и
+                                        ; надо перепрыгнуть ветку FALSE (безусловно)
+             DW  SWAP,TWO,THEN,TWO,SEMI ; адреса переходов меняем местами, т.к.
+                                        ; по условию FALSE должен выполниться  
+                                        ; код после слова ELSE, воспользуемся 
+                                        ; для этого словом THEN
 
-             HEAD    305Q,'WHIL',305Q,$WHILE,$COL         ; WHILE
-             DW  $IF,SEMI
+             HEAD    304Q,'THE',316Q,THEN,$COL            ; THEN
+             DW  QCOMP,TWO,QPAIR,HERE,OVER,SUBB,SWAP,STORE,SEMI           
+    ; if - step      cond if true else false then 
+        ; DICT:  ?BRANCH 0 
+        ; STACK:  adr_if 
+    ; else - step получается слишком много кода... Вроде разобрался! :)
+        ; ?BRANCH 0     BRANCH 0 
+        ;  adr_else adr_if 
+    ; then - step
+        ;1 DICT:  ?BRANCH 0 
+        ;1 STACK:  adr_if         
+        ;2 STACK:  adr_if adr_then  
+        ;3 STACK:  adr_if adr_then  adr_if 
+        ;4 STACK:  adr_if (adr_if-adr_then)
+        ;4 STACK:  (adr_if-adr_then) adr_if 
+        ;5 DICT:  ?BRANCH [adr_if]=(adr_if-adr_then) 
+        ;5 STACK:  
 
              HEAD    86h,'SPACE',323Q,SPACS,$COL         ; SPACES
              DW  ZERO,MAX,DDUP,ZBRAN,SP1-$,ZERO,XDO
@@ -1871,14 +2038,15 @@ printWORD endP
    TRI:      DW  I,$LIST,XLOOP,TRI-$,SEMI
 
              HEAD    85h,'VLIS',324Q,VLIST,$COL          ; VLIST
-    ; список слов в словаре
+    ; список слов в контекстном словаре 
              DW  CONT,AT,AT
    VL0:      DW  CR,THREE,ZERO,XDO
    VL1:      DW  DUBL,IDDOT,LIT,15Q,OVER,CAT,LIT,37Q,$AND,SUBB
              DW  SPACS,PFA,DUBL,LIT,6,UDOTR,SPACE,LIT,41Q
-             DW  EMIT,SPACE,KEY, DROP, LFA,AT,DUBL,ZEQU,ZBRAN,VL2-$
+             DW  EMIT,SPACE,   LFA,AT,DUBL,ZEQU,ZBRAN,VL2-$
              DW  LEAV ; добавил паузу
-   VL2:      DW  XLOOP,VL1-$,DDUP,ZEQU,ZBRAN,VL0-$,SEMI
+   VL2:      DW  XLOOP,VL1-$, KEY, DROP
+             DW  DDUP,ZEQU,ZBRAN,VL0-$,SEMI
 
              HEAD    83h,'LC',314Q,LCL,$COL              ; LCL
     ; очистка командной строки
@@ -2032,8 +2200,14 @@ printWORD endP
             DW  DOVOC   ; PFA     
             DW 120201Q  ; = A0 81 мнимый заголовок слова для связи словарей
             DW TASK-7   ; PFA+4 NFA(TASK) последнее слово в этом словаре                                    
-    XVOC    LABEL   FAR         ;  VOC-LINK
-            DW  0               ;  ссылка на предыдущий словарь
+    XVOC    LABEL   FAR ; VOC-LINK
+            DW  0       ; ссылка на предыдущий словарь
+                        ; для чего так и не нашел. похоже, здесь не используется
+    ; VOC-LINK --- addr U
+    ;    A user variable containing the address of a field in the definition
+    ;    of the most recently created vocabulary. All vocabulary names are
+    ;    linked by these fields to allow control for FORGETting thru multiple
+    ;    vocabularies.
 
              HEAD    84h,'TAS','K'+80h,TASK,$COL            ; TASK
         ; пустое определение. последнее слово в словаре FORTH
