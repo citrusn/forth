@@ -3,8 +3,8 @@
 
  00000H 00000H 00000H _TEXT              CODE
  00000H 00000H 00000H _DATA              DATA
- 00000H 0AB0CH 0AB0DH ARRAY              
- 0AB10H 0AB93H 00084H STCK               
+ 00000H 0ABE1H 0ABE2H ARRAY              
+ 0ABF0H 0AC73H 00084H STCK               
 
 Program entry point at 0000:0DB4
 

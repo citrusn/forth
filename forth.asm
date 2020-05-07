@@ -30,13 +30,13 @@ LINK=0
         ENDIF
         ENDM
 
+    debug equ 1
     NEXT MACRO   ; переход к исполнению следующего слова
         local m1 
         LODSW           ; DS:[SI] -> AX ; SI = SI + 2
         MOV  BX, AX     ; BX равен CFA  следующего слова
-    ; ------ call debugger -------- 
-    deb equ 0
-    IF deb 
+    ; ------ call debugger --------     
+    IF debug
         cmp byte ptr [di+102Q], 0   
         jz m1
         call printWORD
@@ -66,8 +66,7 @@ LINK=0
    XUP     DW  102 DUP(0)              ; USER-область на нее указывает DI
 
    $STI    DW  TASK-7  ;               ; Стартовая таблица PFA слова TASK
-   $US     DW  XUP     ;    
-              ; адрес user области
+   $US     DW  XUP     ;               ; адрес user области
    ;    переменные
    $STK    DW  XS0     ;+6              ; SO   
    $RS     DW  XR0     ;+8              ; RO стек возвратов
@@ -285,16 +284,35 @@ include debug.asm
    TRUE:     MOV   AX,  1
              JMP   PUT
 
+             HEAD    83h,'0<','>'+80h,NZEQ               ; 0<>
+             POP   AX
+             CMP   AX,  0
+             JNE    TRUE
+             JMP FALSE
+
              HEAD    82h,'0',276Q,ZGRET                  ; 0>
              POP   AX
              CMP   AX, 0
              JG    TRUE
              JMP   FALSE
 
+             HEAD    83h,'0=',276Q,ZEQGR                  ; 0=>
+             POP   AX
+             CMP   AX, 0
+             JGE    TRUE
+             JMP   FALSE
+
              HEAD    82h,'0',274Q,ZLESS                  ; 0<
              POP   AX
              CMP   AX, 0
              JS    TRUE         ; Если минус
+             JMP   FALSE
+
+             HEAD    83h,'0=',274Q,ZEQLES                ; 0=<
+             POP   AX
+             CMP   AX, 0
+             JS   TRUE         ; Если минус
+             JE   TRUE          ; или ноль
              JMP   FALSE
 
              HEAD    81h,,275Q,EQUAL                     ; =
@@ -304,33 +322,58 @@ include debug.asm
              JE    TRUE
              JMP   FALSE
 
+             HEAD    82h,'<','>'+80h,NEQ                  ; <>
+             POP   AX
+             POP   CX
+             CMP   CX, AX
+             JE    FALSE1
+             JMP   TRUE1
+
              HEAD    82h,'U',274Q,ULESS                  ; U<
              POP   AX
              POP   CX
              CMP   CX, AX
-             JB    TRUE           ; для чисел без знака
-             JMP   FALSE
+             JB    TRUE1           ; для чисел без знака
+             JMP   FALSE1
 
              HEAD    81h,,274Q,LESS                      ; <
              POP   AX
              POP   CX
              CMP   AX, CX
-             JG    TRUE
-             JMP   FALSE
+             JG    TRUE1
+             JMP   FALSE1
+
+             HEAD    82h,'=',274Q,EQLES                      ; =<
+             POP   AX
+             POP   CX
+             CMP   AX, CX
+             JGE    TRUE1
+             JMP   FALSE1
 
              HEAD    81h,,276Q,GREAT                     ; >
              POP   AX
              POP   CX
              CMP   AX, CX
-	         JL    TRUE
-             JMP   FALSE
+	         JL    TRUE1
+             JMP   FALSE1
+
+             HEAD    82h,'=',276Q,EQGR                     ; =>
+             POP   AX
+             POP   CX
+             CMP   AX, CX
+	         JLE    TRUE1
+             JMP   FALSE1
 
             HEAD     84h,'EVE', 'N'+80h, $EVEN           ; EVEN
     ; проверка на четность
             pop ax 
             test ax, 1 ; проверяем младший бит
-            jz true ; если бит=0, то число четное
-            jmp false
+            jz true1 ; если бит=0, то число четное            
+    FALSE1: SUB   AX,  AX
+    PUT1:   PUSH  AX
+            NEXT
+    TRUE1:  MOV   AX,  1
+            JMP   PUT1
 
    ;         ******************
 
@@ -380,19 +423,19 @@ include debug.asm
 
              HEAD    83h,'PI',330Q,PIX                   ; PIX
     ; COLCOD ROW COLUMN -->  -    запись графической точки             
-             POP   CX                  ; колонка
-             POP   BX                  ; строка
+             POP   CX                  ; колонка x?
+             POP   DX                  ; строка y?
              POP   AX                  ; код цветности
-             PUSH  DX                  ; сохранение DX             
-             MOV   DX, BX              ; BH = номер видео страницы ??? где
-             SUB   DH, DH
+             ;PUSH  DX                  ; сохранение DX             
+             ;MOV   DX, BX              ; BH = номер видео страницы ??? где
+             ;SUB   DH, DH              ; ошибка в коде
              push   ax             
              MOV   AH, 0Fh             ; Чтение текущей страницы
              INT   10h                 ; в BH
              pop    ax                 ; код цветности
              MOV   AH, 0Ch             ; 
              INT   10h                 ; запись графической точки
-             POP   DX                  ; восстановление DX
+             ;POP   DX                  ; восстановление DX
              NEXT
 
              HEAD    84h,'MOD','A'+80h,MODA                 ; MODA
@@ -473,15 +516,16 @@ include debug.asm
 
              HEAD    83h,'SC',314Q,SCL                   ; SCL
    ; SCREEN CLEAR
-             MOV   CX, 2048     ; Загрузка счетчика
-             MOV   AH, 15
-             INT   10h           ; Установка текущей страницы
+             ;MOV   CX, 2048     ; Загрузка счетчика
+             ;MOV   AH, 15
+             ;INT   10h           ; Установка текущей страницы
              SUB   DX, DX       ;  DH,DL = строка, колонка (считая от 0)
-             MOV   AH, 2        ; Курсор в исходное положение
-             INT   10h
-             MOV   BL, 7        ; атрибут
+             SUB   CX, CX
+             ;MOV   AH, 2        ; Курсор в исходное положение
+             ;INT   10h
+             MOV   BH, 7        ; атрибут
     ; 09H писать символ/атрибут в текущей позиции курсора
-   CLEAR:    MOV   AX, 0920H    ; Очистка экрана AL = записываемый символ
+   CLEAR:    MOV   AX, 0600H    ; число пустых строк, вдвигаемых снизу (0=очистить все окно)
              INT   10h
              NEXT
 
@@ -806,6 +850,30 @@ include debug.asm
             PUSH [BP+2]
             JMP  Z$
 
+        HEAD     81h,,'J'+80h,J                    ; J
+        ; Копирует третье сверху число из стека возвратов 
+        ; и записывает его в стек параметров
+            PUSH [BP+4]
+            JMP  Z$
+        
+        HEAD     82h,'J',247Q,JT                    ; J'
+        ; Копирует четвертое сверху число из стека возвратов 
+        ; и записывает его в стек параметров
+            PUSH [BP+6]
+            JMP  Z$
+
+        HEAD     81h,,'K'+80h,K                    ; K
+        ; Копирует пятое сверху число из стека возвратов 
+        ; и записывает его в стек параметров
+            PUSH [BP+8]
+            JMP  Z$        
+
+        HEAD     82h,'K',247Q,KT                    ; K'
+        ; Копирует шестое сверху число из стека возвратов 
+        ; и записывает его в стек параметров
+            PUSH [BP+10]
+            JMP  Z$
+
             HEAD     83h,'LE',326Q,LEV                   ; LEV
         ; эквивалент R> DROP :) только быстрее
         ; для выхода из interpret
@@ -879,6 +947,15 @@ include debug.asm
             PUSH BX
             NEXT
 
+            HEAD     84h,'-RO',324Q,MROT                   ; -ROT
+            POP  AX
+            POP  CX
+            POP  BX
+            PUSH AX
+            PUSH BX
+            PUSH CX
+            NEXT
+
             HEAD     85h,'2DRO',320Q,DDROP               ; 2DROP
    DRO:     ADD  SP, 4
             NEXT
@@ -939,6 +1016,12 @@ include debug.asm
             POP  BX
             POP  CX
             ADD  [BX], CX
+            NEXT
+
+            HEAD     82h,'-',241Q,MSTOR                  ; +!
+            POP  BX
+            POP  CX
+            SUB  [BX], CX
             NEXT
 
             HEAD     84h,'TOG',314Q,TOGL                 ; TOGGLE
@@ -1143,7 +1226,7 @@ include debug.asm
    $VAR     LABEL   FAR
             ADD  BX, 2  ; BX указывает на CFA ($COL)
                         ; BX+2 пропускает поле CFA
-            PUSH BX     ; в BX находится адрес переменной PFA (CON)
+            PUSH BX     ; в BX находится адрес переменной PFA ($VAR)
             NEXT
 
             HEAD     84h,'USE',322Q,USER, $COL           ; USER
@@ -1156,11 +1239,12 @@ include debug.asm
             NEXT
 
             HEAD     85h,'DOES',276Q,DOES,$COL           ; DOES>
-    ; запись в адрес PFA слова в словаре адреса кода,
-    ; который следует за DOES>. В CFA пишется адрес кода,
-    ; следующего за PSCOD, т.е. $DOE
+    ; запись в PFA адреса кода, который следует за DOES>.
+    ; В CFA пишется адрес кода, следующего за PSCOD, т.е. $DOE
+    ; при исполнении в стек помещается адрес PFA+2
+    ;  управление передается по адресу PFA
             DW  FROMR,LATES,PFA,STORE,PSCOD
-   $DOE     LABEL   FAR ; здесь используется только в FORTH
+   $DOE     LABEL   FAR   ; здесь используется только в FORTH
             SUB  BP,  2   ; резервируем место в RS
             MOV  [BP], SI ; сохраняем SI адрес следующего слова
             ADD  BX, 2    ; BX+2 это PFA исполняемого слова (FORTH)
@@ -1317,7 +1401,7 @@ include debug.asm
             ; блокируется.
 
             HEAD     83h,'DE','B'+80h,DEB,$USE              ; DEB
-            DW 102Q  ; признак отладки
+            DW 102Q  ; признак отладки  66d
                     ; 
 
         ;** Слова высокого уровня **
@@ -1381,29 +1465,32 @@ include debug.asm
              DW  LATES,BLAN,TOGL,SEMI
 
              HEAD    87h,'(;CODE',251Q,PSCOD,$COL        ; (;CODE)
-        ; адрес из стека возвратов (там находится адрес начала кода на ассемблере)
-        ; пишем в CFA последнего определенного слова  
-        ; таким образом в CFA будет свой код интерпретатора на ассемблере
+    ; адрес из стека возвратов (там находится адрес начала кода на ассемблере)
+    ; пишем в CFA последнего определяемого слова  
+    ; таким образом в CFA будет свой код интерпретатора на ассемблере
              DW  FROMR,LATES,PFA,CFA,STORE,SEMI
 
              HEAD    87h,'#BUILD',323Q,BUILD,$COL        ; <BUILDS ; 
-        ; формирует в словаре описание константы равной 0 с именем XXX
+    ; формирует в словаре описание константы равной 0 с именем XXX
+    ; в поле PFA находится 0, который потом заменится адресом кода,
+    ; следующего за словом DOES 
+    ; в CFA будет помещен адрес кода $DOE
              DW  ZERO,CON,SEMI
 
              HEAD    85h,'COUN',324Q,COUNT,$COL          ; COUNT
-        ; addr1 --- addr2 n
-        ; адрес HERE+1 (это адрес первого байта слова)
-        ; и число символов в  слове  (HERE  C@)
+    ; addr1 --- addr2 n
+    ; адрес HERE+1 (это адрес первого байта слова)
+    ; и число символов в  слове  (HERE  C@)
              DW  DUBL           ; addr1 addr1
              DW  ONEP,SWAP      ; addr1+1 addr1
-             DW  CAT,SEMI       ; addr1+1 u8(addr1)   
+             DW  CAT,SEMI       ; addr1+1 u8[addr1]
 
              HEAD    84h,'TYP',305Q,$TYPE,$COL           ; TYPE
     ; адр count -> вывод строки на экран
              DW  DDUP,ZBRAN,TC1-$,ZERO,XDO
-   TC0:      DW  DUBL,I,PLUS,CAT,LIT,177Q,$AND
+    TC0:     DW  DUBL,I,PLUS,CAT,LIT,177Q,$AND
              DW  ONE,EMI$,XLOOP,TC0-$
-   TC1:      DW  DROP,SEMI
+    TC1:     DW  DROP,SEMI
 
              HEAD    84h,'(."',251Q,PDOTQ,$COL           ; (.")
              DW  I      ; при исполнении следующее число - 
@@ -1411,7 +1498,7 @@ include debug.asm
              DW COUNT,DUBL,ONEP
              DW  FROMR,PLUS,TOR,$TYPE,SEMI
 
-             HEAD    302Q,'.',242Q,D0TQ,$COL              ; ."
+             HEAD    302Q,'.',242Q,DOTQ,$COL              ; ."
              DW  LIT,34,STATE,AT,ZBRAN,XT-$
              DW  COMP,PDOTQ,$WORD,HERE,CAT,ONEP
              DW  ALLOT, SEMI
@@ -1429,7 +1516,7 @@ include debug.asm
     ; прерывает бесконечное испольнение INTERPRET 
              DW  BLK,AT,ZBRAN,NUL-$         ; если пультовый режим
              DW  ONE,BLK,PSTOR,ZERO,$IN,STORE,QEXEC
-   NUL:      DW  LEV,SEMI
+    NUL:     DW  LEV,SEMI
 
              HEAD    83h,'PA',304Q,PAD,$COL              ; PAD
         ; Многие операции   выдачи   результатов   и   сообщений   на   экран
@@ -1497,7 +1584,8 @@ include debug.asm
         ; печатает   имя   слова
              DW  COUNT,LIT,37Q,$AND,$TYPE,SPACE,SEMI
 
-             HEAD    86h,'CREAT',305Q,CREAT,$COL         ; CREATE  - --> адр XXX (I, C)
+             HEAD    86h,'CREAT',305Q,CREAT,$COL         ; CREATE  
+        ; - --> адр XXX (I, C)
         ; формирование новых слов - описателей.
         ; (CREATE XXX DOES>) XXX исполняется на этапе компиляции,
         ; текст программы, следующий за DOES>, адрес которого 
@@ -1507,12 +1595,11 @@ include debug.asm
    CRE:      DW  HERE,DUBL,CAT,$WIDTH,AT,MIN,ONEP,ALLOT ; here указывает на число символов слова
                                                 ; сдвигаем here на длину слова + сам байт длины
              DW  DUBL,LIT,240Q,TOGL,HERE,ONEM   ; выключаем из поиска
-                                                ; 240Q = 10100000
+                                            ; 240Q = 10100000
              DW  LIT,200Q,TOGL,LATES,COMMA,CURR,AT,STORE ; в последней букве слова включаем 7 бит
                                             ; ссылка на пред слово и сохраняем ссылку на вновь
                                             ; созданное слово    
-             DW  HERE,TWOP,COMMA,SEMI       ; в словарь адрес here
-
+             DW  HERE,TWOP,COMMA,SEMI       ; в CFA пишем адрес PFA
              HEAD    311Q,'[COMPILE',335Q,BCOM,$COL       ; [COMPILE]
         ; Используется в описании типа двоеточия и служит для
 		; компиляции слова немедленного действия XXX, как если бы оно
@@ -1602,6 +1689,9 @@ include debug.asm
              DW  SLMOD,DROP,SEMI
 
              HEAD    85h,'*/MO',304Q,SSMOD,$COL          ;. */MOD
+    ; u1 u2 u3 --> u-rem u-result
+    ; u1*u2/u3 - остаток и частное, u1 u2 - 32-разрядное число
+
              DW  TOR,MSTAR,FROMR,MSLAS,SEMI
 
              HEAD    82h,'*',257Q,SSLA,$COL              ; */
@@ -1644,9 +1734,11 @@ include debug.asm
    BLC:      DW  FROMR,DROP,TWOP,SEMI
 
              HEAD    85h,'.LIN',305Q,DLINE,$COL          ; .LINE
-    ; печать строки по номеру экрана
-             DW  TOR,$CL,BBUF,SSMOD,FROMR,PLUS,BLOCK
-             DW  PLUS,$CL,DTRAI,$TYPE,SEMI
+    ; строка номер_экрана -- печать строки из экрана
+             DW  TOR,$CL,BBUF,SSMOD ; строка*64/1024 
+             DW  FROMR,PLUS,BLOCK   ; номер_экрана + частное 
+             DW  PLUS           ; остаток+ адрес_блока (нужная строка) 
+             DW  $CL,DTRAI,$TYPE,SEMI ; 64 - число пробелов (число символов в строке)
 
              HEAD    87h,'MESSAG',305Q,MESS,$COL         ; MESSAGE
              DW  $IN,AT,RNUM,STORE ; сохранить значение $in
@@ -2073,14 +2165,6 @@ MSC# 22     Должно использоваться только            USED AT LOADING
 
 MSC# 26     Деление на 0                            0 DIVISION
 ----------------------------------------------------------------------
-
-   N = 1 Данного диска нет в системе
-   N = 2 Отсутствует управляющая программа внешнего устройства
-   N = 3 Отсутствует файл DK:FORTH.DAT (или его заменяющий)
-   N = 5 Что-то со стеком
-   N = 6 Неудача при чтении
-   N = 7 Ошибка при записи
-
 после загрузки:
     context=current=27f5 словарь forth 
     указывает на последнее слово asctab (2977)
