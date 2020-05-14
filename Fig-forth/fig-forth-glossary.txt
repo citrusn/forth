@@ -1029,6 +1029,11 @@ M/MOD ud1 u2 --- u3 ud4
         quotient ud4 and remainder u3, from a double dividend ud1 and single
         divisor u2.
 
+DS/MOD ( D1 N1 --> D2 N2)
+   Слово выполняет деление с остатком числа двойной длины D1 на число одинар-
+ной длины N1. Частное двойной длины D2 и остаток от деления  одинарной  длины
+N2 оставляются на стеке.
+
 
 MAX           n1  n2  ---  max                L0
         Leave the greater of two numbers.

@@ -173,9 +173,10 @@ include debug.asm
              POP   [BP] ; конечное значение цикла
              SUB   BP, 2
              MOV   WORD PTR  [BP],AX ; в стек возвратов начальное значение цикла
-            ; BP-4 - начальное значение 
+            ; RS растет в сторону с меньшими адресами 
+            ; BP  до входа в слово. 
             ; BP-2 - конечное значение цикла
-            ; BP  до входа в слово. RS растет в сторону с меньшими адресами 
+            ; BP-4 - начальное значение 
              NEXT
 
              HEAD    86h,'(LOOP',251Q,XLOOP              ; (LOOP)
@@ -343,7 +344,7 @@ include debug.asm
              JG    TRUE1
              JMP   FALSE1
 
-             HEAD    82h,'=',274Q,EQLES                      ; =<
+             HEAD    82h,'=',274Q,EQLES                  ; =<
              POP   AX
              POP   CX
              CMP   AX, CX
@@ -421,6 +422,79 @@ include debug.asm
              INT   10h
              NEXT
 
+            HEAD    85h,'PIX1','3'+80h,PIX13             ; pixel 13h mode
+        ; color y x ->     
+            pop bx
+            pop ax
+            mov dx, 320
+            mul dx
+            add ax, bx
+            mov bx, 0a000h
+            pop cx
+            push es
+            mov es, bx
+            mov bx, ax
+            mov es:[bx], cl
+            pop es
+            NEXT 
+
+            HEAD    85h,'PIX1','2'+80h,PIX12             ; pixel 12h mode
+        ; color y x ->     
+        ; ax - row
+        ; bx - column
+        ; ch - color
+            pop bx
+            pop ax
+            pop cx
+            mov ch, cl
+            push es
+            call pixptr12 
+            mov dx, 3ceh
+
+            shl ah, cl
+            mov al, 8
+            out dx, ax
+            
+            mov ax, 205h
+            out dx, ax
+
+            mov ax, 3
+            out dx, ax    
+
+            mov al, es:[bx]
+            mov es:[bx], ch
+
+            mov ax, 0ff08h
+            out dx, ax
+            mov ax, 5
+            out dx,ax
+            mov ah, 3
+            out dx, ax
+            pop es
+            NEXT
+
+            pixptr12 proc
+    ; ax-row 
+    ; bx-column
+    ; returns
+    ; es:bx -> pixel
+    ; cl - bit position
+    ; ah - bitmask 
+            push dx
+            mov cl, bl
+            mov dx, 80
+            mul dx
+            shr bx, 3
+            add bx, ax
+            mov ax, 0a000h
+            mov es, ax
+            and cl, 7
+            xor cl, 7
+            mov ah, 1
+            pop dx
+            ret
+            pixptr12 endp
+
              HEAD    83h,'PI',330Q,PIX                   ; PIX
     ; COLCOD ROW COLUMN -->  -    запись графической точки             
              POP   CX                  ; колонка x?
@@ -493,15 +567,15 @@ include debug.asm
              JMP   TYPE$
    ERMES4    DB   " PRINTER ERROR $" ; 
 
-             HEAD    82h,'R',303Q,RC                     ; RC
+             HEAD    82h,'R',303Q,RC               ; RC
              MOV   AX, 13
              JMP   ENT$
 
-             HEAD    82h,'I',314Q,IL                     ; BELL
+             HEAD    82h,'I',314Q,IL               ; BELL
              MOV   AX, 7
              JMP   ENT$
 
-             HEAD    84h,'PRI',316Q,PRIN             ; PRINT-FLAG
+             HEAD    84h,'PRI',316Q,PRIN           ; PRINT-FLAG
              INC   WORD PTR  [DI+42Q]
              MOV   DX,  0       ; Установка номера принтера
              MOV   AH,  1       ; Инициализация принтера
@@ -519,11 +593,11 @@ include debug.asm
              ;MOV   CX, 2048     ; Загрузка счетчика
              ;MOV   AH, 15
              ;INT   10h           ; Установка текущей страницы
-             SUB   DX, DX       ;  DH,DL = строка, колонка (считая от 0)
-             SUB   CX, CX
+             mov   dx, 1855h      ;  DH,DL = строка, колонка (считая от 0)
+             sub   cx, cx
              ;MOV   AH, 2        ; Курсор в исходное положение
              ;INT   10h
-             MOV   BH, 7        ; атрибут
+             mov   bh, 0       ; атрибут
     ; 09H писать символ/атрибут в текущей позиции курсора
    CLEAR:    MOV   AX, 0600H    ; число пустых строк, вдвигаемых снизу (0=очистить все окно)
              INT   10h
@@ -724,6 +798,13 @@ include debug.asm
             MOV  BX, SP
             ADD  SS:[BX+2],  CX
             ADC  SS:[BX],    AX
+            NEXT
+
+            HEAD     82h,'M',253Q,MPLUS                  ; M+
+            POP  CX
+            MOV  BX, SP
+            ADD  SS:[BX+2],  CX
+            ADC  word ptr SS:[BX],    0
             NEXT
 
             HEAD     85h,'MINU',323Q,MINUS               ; MINUS
@@ -956,12 +1037,22 @@ include debug.asm
             PUSH CX
             NEXT
 
+            HEAD     85h,'4DRO',320Q,QDROP               ; 4DROP
+            ADD  SP, 6
+            NEXT
+
             HEAD     85h,'2DRO',320Q,DDROP               ; 2DROP
    DRO:     ADD  SP, 4
             NEXT
 
             HEAD     84h,'DRO',320Q,DROP                 ; DROP
    DRP:     ADD  SP, 2
+            NEXT
+
+            HEAD     83h,'NI','P'+80h,NIP                ; NIP
+            POP  BX
+            POP  AX
+            PUSH BX
             NEXT
 
    ;        ** Работа с памятью **
@@ -1037,7 +1128,18 @@ include debug.asm
             PUSH [BX]
             NEXT
 
-            HEAD     82h,'C',300Q,CAT                    ; C@
+            HEAD     82h,'A',300Q,AAT                    ; a@
+        ; ( Offset Segment --> Value )
+            pop  ax
+            pop  bx
+            push es
+            mov  es, ax
+            mov  ax, es:[bx]
+            pop  es
+            push ax            
+            NEXT
+
+            HEAD     82h,'C',300Q,CAT                    ; c@
         ; Извлекает байт информации из ячейки, 
         ; адрес которой находится в стеке
             POP  BX
@@ -1402,7 +1504,18 @@ include debug.asm
 
             HEAD     83h,'DE','B'+80h,DEB,$USE              ; DEB
             DW 102Q  ; признак отладки  66d
-                    ; 
+
+            HEAD     89h,'LASTRAND','X'+80h,LASTRANDX,$USE  ; LASTRANDX
+            DW 104Q  ; 
+
+            HEAD     82h,'X','A'+80h,XA,$USE              ; XA
+            DW 106Q  ; 
+
+            HEAD     82h,'X','C'+80h,XC,$USE              ; XC
+            DW 110Q  ; 
+                    
+            HEAD     82h,'X','M'+80h,XM,$USE              ; XM
+            DW 112Q  ;  
 
         ;** Слова высокого уровня **
 
@@ -1680,6 +1793,7 @@ include debug.asm
              DW  MSTAR,DROP,SEMI
 
              HEAD    84h,'/MO',304Q,SLMOD,$COL           ; /MOD
+    ; n1 n2 --- rem quot 
              DW  TOR,STOD,FROMR,MSLAS,SEMI
 
              HEAD    81h,,257Q,SLASH,$COL                ; /

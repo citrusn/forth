@@ -1,0 +1,191 @@
+Turbo Assembler	 Version 3.1	    05/10/20 19:54:38	    Page 1
+linetest.asm
+
+
+
+      1				     .286
+      2	0000			     .model tiny
+      3	0000			     .code
+      4				     org 100h
+      5	0100			     start:
+      6	0100  EB 07		     jmp _s
+      7	0102  0096		     x dw 150
+      8	0104  0046		     y dw 70
+      9	0106  003C		     n dw 60
+     10	0108  32		     color db 50
+     11	0109			     _s:
+     12	0109  B4 0F		     mov ah,0Fh	;запомнить видеорежим
+     13	010B  CD 10		     int 10h
+     14	010D  A2 0123r		     mov videor,al
+     15
+     16	0110  B8 0013		     mov ax,13h
+     17	0113  CD 10		     int 10h;установили	видеорежим 256x320x200
+     18
+     19	0115  E8 000D		     call LineDraw ;рисуем линию
+     20
+     21	0118  B4 00		     mov ah,0 ;ждем нажатия на клавишу
+     22	011A  CD 16		     int 16h
+     23
+     24	011C  A1 0123r		     mov ax, word ptr videor ;восстановить видеорежим
+     25	011F  CD 10		     int 10h
+     26
+     27	0121  CD 20		     int 20h ;выход из программы
+     28	0123  00 00		     videor db 0,0
+     29
+     30	0125			     LineDraw proc
+     31				     ;предварительные установки
+     32	0125  68 A000		     PUSH 0A000h
+     33	0128  07		     POP ES; позиционируем ES на область видеопамяти
+     34
+     35	0129  8B 3E 0102r	     MOV DI,X ;	в DI координаты	начальной точки	по X
+     36	012D  B8 0140		     MOV AX,320; длина строки экрана
+     37	0130  F7 26 0104r	     MUL Y; умножаем на	Y
+     38	0134  03 F8		     ADD DI,AX;	и складываем с X
+     39
+     40				     ;push di
+     41				     ;MOV AL, 1; цвет линии
+     42				     ;mov di, 0
+     43				     ; рисуем горизонтальную линию
+     44				     ;MOV CX, 320*200 ;	N; длина линии
+     45				     ;REP STOSB
+     46				     ;pop di
+     47
+     48				     ; рисуем линию по точкам
+     49	0136  C7 06 0104r 0000		     mov y, 0
+     50	013C			     cy:
+     51	013C  C7 06 0102r 0000		     mov x, 0
+     52	0142			     cyx:
+     53				     ;	     push x ; color
+     54				     ;	     push y
+     55				     ;	     push x
+     56				     ;	     jmp p13 ;call pix13 ; color y x ->
+     57					     ;mov bx, 320
+Turbo Assembler	 Version 3.1	    05/10/20 19:54:38	    Page 2
+linetest.asm
+
+
+
+     58					     ;mov ax, y
+     59					     ;mul bx
+     60					     ; mov bx, y
+     61					     ;add ax, x
+     62					     ;mov bx, ax
+     63	0142  A1 0102r			     mov ax, x
+     64	0145  26: 88 07			     mov es:[bx], al
+     65	0148			     t1:
+     66	0148  8B D8			     mov bx, ax	; x !!!!
+     67	014A  43			     inc bx
+     68	014B  43			     inc bx
+     69	014C  81 FB FA00		     cmp bx, 320*200
+     70	0150  74 06			     je	stepy
+     71	0152  89 1E 0102r		     mov x, bx
+     72	0156  EB EA			     jmp cyx
+     73	0158			     stepy:
+     74	0158  8B 1E 0104r		     mov bx, y
+     75	015C  43			     inc bx
+     76	015D  89 1E 0104r		     mov y, bx
+     77	0161  83 FB 01			     cmp bx, 1
+     78	0164  74 02			     je	e
+     79	0166  EB D4			     jmp cy
+     80	0168			     e:
+     81	0168  C3			     ret
+     82
+     83	0169  57		     push di
+     84	016A  B0 3C		     MOV AL, 60; цвет линии
+     85				     ;Вертикальную линию обычно	рисуют циклом
+     86	016C  8B 0E 0106r	     MOV CX,N; длина линии
+     87	0170  26: 88 05		     A1: MOV ES:[DI],AL; рисуем	точку на строке
+     88	0173  81 C7 0140	     ADD DI,320; переход на следующую строку
+     89	0177  E2 F7		     LOOP A1
+     90	0179  5F		     pop di
+     91
+     92	017A  57		     push di
+     93	017B  B0 46		     MOV AL, 70; цвет линии
+     94				     ;диагональную линию с наклоном влево можно	нарисовать циклом
+     95	017D  8B 0E 0106r	     MOV CX,N; длина линии
+     96	0181  26: 88 05		     A2: MOV ES:[DI],AL; рисуем	точку на строке
+     97	0184  81 C7 013F	     ADD DI,319; переход на следующую строку
+     98	0188  E2 F7		     LOOP A2
+     99	018A  5F		     pop di
+    100
+    101	018B  B0 50		     MOV AL, 80; цвет линии
+    102				     ;диагональную линию с наклоном вправо — циклом
+    103	018D  8B 0E 0106r	     MOV CX,N; длина линии
+    104	0191  26: 88 05		     A3: MOV ES:[DI],AL; рисуем	точку на строке
+    105	0194  81 C7 0141	     ADD DI,321; переход на следующую строку
+    106	0198  E2 F7		     LOOP A3
+    107	019A  C3		     ret
+    108	019B			     LineDraw endp
+    109
+    110				     ; color y x ->
+    111	019B			     pix13 proc
+    112	019B  5B		     p13:    pop bx
+    113	019C  58			     pop ax
+    114	019D  BA 0140			     mov dx, 320
+Turbo Assembler	 Version 3.1	    05/10/20 19:54:38	    Page 3
+linetest.asm
+
+
+
+    115	01A0  F7 E2			     mul dx
+    116	01A2  03 C3			     add ax, bx
+    117					     ;mov bx, 0a000h
+    118	01A4  59			     pop cx
+    119					     ;push es
+    120					     ;mov es, bx
+    121	01A5  8B D8			     mov bx, ax
+    122	01A7  26: 88 0F			     mov es:[bx], cl
+    123					     ;pop es
+    124	01AA  EB 9C			     jmp t1
+    125	01AC			     pix13 endp
+    126
+    127				     end start
+Turbo Assembler	 Version 3.1	    05/10/20 19:54:38	    Page 4
+Symbol Table
+
+
+
+
+Symbol Name			  Type	 Value
+
+??DATE				  Text	 "05/10/20"
+??FILENAME			  Text	 "linetest"
+??TIME				  Text	 "19:54:37"
+??VERSION			  Number 030A
+@32BIT				  Text	 0
+@CODE				  Text	 DGROUP
+@CODESIZE			  Text	 0
+@CPU				  Text	 0707H
+@CURSEG				  Text	 _TEXT
+@DATA				  Text	 DGROUP
+@DATASIZE			  Text	 0
+@FILENAME			  Text	 LINETEST
+@INTERFACE			  Text	 00H
+@MODEL				  Text	 1
+@STACK				  Text	 DGROUP
+@WORDSIZE			  Text	 2
+A1				  Near	 DGROUP:0170
+A2				  Near	 DGROUP:0181
+A3				  Near	 DGROUP:0191
+COLOR				  Byte	 DGROUP:0108
+CY				  Near	 DGROUP:013C
+CYX				  Near	 DGROUP:0142
+E				  Near	 DGROUP:0168
+LINEDRAW			  Near	 DGROUP:0125
+N				  Word	 DGROUP:0106
+P13				  Near	 DGROUP:019B
+PIX13				  Near	 DGROUP:019B
+START				  Near	 DGROUP:0100
+STEPY				  Near	 DGROUP:0158
+T1				  Near	 DGROUP:0148
+VIDEOR				  Byte	 DGROUP:0123
+X				  Word	 DGROUP:0102
+Y				  Word	 DGROUP:0104
+_S				  Near	 DGROUP:0109
+
+Groups & Segments		  Bit Size Align  Combine Class
+
+DGROUP				  Group
+  _DATA				  16  0000 Word	  Public  DATA
+  _TEXT				  16  01AC Word	  Public  CODE
+
