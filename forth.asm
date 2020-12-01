@@ -12,23 +12,45 @@ LINK=0
     .LALL
     ; Макроопределения
     ; Описание примитивов и слов высокого уровня
-    HEAD  MACRO length,name,lchar,labl,code
-    LINK$=$
+
+    HEAD  MACRO length, name, lchar, labl, code
+    	LINK$=$
         DB  length  ; NFA 7 бит равен 1.
                     ; 6 - признак immediate. 5- слово не описано smudge
         IFNB <name>
-        DB  NAME
+        DB  name
         ENDIF
         DB  lchar   ; последний символ слова + 128 (7 бит = 1).  
+
         DW  LINK    ; LFA предыдущее слово (адрес первого символа имени)
-    LINK=LINK$
-    labl LABEL FAR  ; CFA
+    	LINK=LINK$
+
+    	labl LABEL FAR  ; CFA
         IFNB <code> ; 
         DW code
         ELSE
         DW  $+2
         ENDIF
-        ENDM
+    ENDM
+    HEAD2  MACRO length, name, lchar, labl, code
+    	LINK$=$
+        DB  length  ; NFA 7 бит равен 1.
+                    ; 6 - признак immediate. 5- слово не описано smudge
+        IFNB <name>
+        DB  '&name','>'
+        ENDIF
+        DB  lchar   ; последний символ слова + 128 (7 бит = 1).  
+
+        DW  LINK    ; LFA предыдущее слово (адрес первого символа имени)
+    	LINK=LINK$
+
+    	labl LABEL FAR  ; CFA
+        IFNB <code> ; 
+        DW code
+        ELSE
+        DW  $+2
+        ENDIF
+    ENDM
 
     debug equ 1
     NEXT MACRO   ; переход к исполнению следующего слова
@@ -45,7 +67,7 @@ LINK=0
     ENDIF 
     ; -----------------------------
         JMP WORD PTR [BX] 
-        ENDM
+    ENDM
 
   TITLE   FORTH Interpreter
 
@@ -81,10 +103,11 @@ LINK=0
 
    ASSUME  CS:ARRAY, DS:ARRAY, ES:ARRAY, SS:STCK
 
+
    $INI      PROC    FAR
              JMP  ENT
    ; ** PRIMITIVES **
-
+  
              HEAD    83h,'IN',311Q,INIT                  ;INI
    ENT:      MOV   CX, ARRAY
              MOV   DS, CX          ; Установка DX
@@ -847,7 +870,7 @@ include debug.asm
             XOR  AX, CX
             JMP  ENDA
 
-            HEAD     84h,'S-#',304Q,STOD                 ; S->D ; sds S->
+            HEAD2     84h,<S->,304Q,STOD                 ; S->D ; sds S->
             POP  AX
             PUSH AX
             MOV  CX, DX           ; Сохранение содержимого DX
@@ -904,8 +927,7 @@ include debug.asm
             NEXT
 
             HEAD     82h, 62,322Q,TOR                    ; >R sds
-        ; пишем в стек возвратов
-        ; слово из стека данных
+        ; пишем в стек возвратов слово из стека данных
             SUB  BP, 2 ; заняли ячейку 
             POP  [BP]   ; записали значение 
             NEXT
@@ -1324,7 +1346,7 @@ include debug.asm
             NEXT
 
             HEAD     88h, 'VARIABL',305Q,VAR,$COL        ; VARIABLE
-            DW CON,PSCOD
+            DW CON,PSCOD  ; должно быть начальное значение переменной
    $VAR     LABEL   FAR
             ADD  BX, 2  ; BX указывает на CFA ($COL)
                         ; BX+2 пропускает поле CFA
@@ -1583,7 +1605,7 @@ include debug.asm
     ; таким образом в CFA будет свой код интерпретатора на ассемблере
              DW  FROMR,LATES,PFA,CFA,STORE,SEMI
 
-             HEAD    87h,'#BUILD',323Q,BUILD,$COL        ; <BUILDS ; 
+             HEAD    87h, '<BUILD',323Q,BUILD,$COL        ; <BUILDS ; 
     ; формирует в словаре описание константы равной 0 с именем XXX
     ; в поле PFA находится 0, который потом заменится адресом кода,
     ; следующего за словом DOES 
@@ -1954,7 +1976,7 @@ include debug.asm
    SPA:      DW  SPACE,XLOOP,SPA-$
    SP1:      DW  SEMI
 
-             HEAD    82h,'#',243Q,BDIGS,$COL             ; <# ; sds replace 
+             HEAD    82h,'<',243Q,BDIGS,$COL             ; <# ; sds replace 
     ; Начинает процесс преобразования числа в последовательность кодов ASCII.
     ; Исходное число в стеке должно быть двойной длины без знака
              DW  PAD,HLD,STORE,SEMI
