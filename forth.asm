@@ -10,25 +10,63 @@ masm
 LOCALS
 LINK=0
     .LALL
+<<<<<<< HEAD
     ; –ú–∞–∫—Ä–æ–æ–ø—Ä–µ–¥–µ–ª–µ–Ω–∏—è
     ; –û–ø–∏—Å–∞–Ω–∏–µ –ø—Ä–∏–º–∏—Ç–∏–≤–æ–≤ –∏ —Å–ª–æ–≤ –≤—ã—Å–æ–∫–æ–≥–æ —É—Ä–æ–≤–Ω—è
     HEAD  MACRO length,name,lchar,labl,code
     LINK$=$
         DB  length  ; NFA 7 –±–∏—Ç —Ä–∞–≤–µ–Ω 1.
                     ; 6 - –ø—Ä–∏–∑–Ω–∞–∫ immediate. 5- —Å–ª–æ–≤–æ –Ω–µ –æ–ø–∏—Å–∞–Ω–æ smudge
+=======
+    ; å†™‡ÆÆØ‡•§•´•≠®Ô
+    ; éØ®·†≠®• Ø‡®¨®‚®¢Æ¢ ® ·´Æ¢ ¢Î·Æ™Æ£Æ „‡Æ¢≠Ô
+
+    HEAD  MACRO length, name, lchar, labl, code
+    	LINK$=$
+        DB  length  ; NFA 7 °®‚ ‡†¢•≠ 1.
+                    ; 6 - Ø‡®ß≠†™ immediate. 5- ·´Æ¢Æ ≠• ÆØ®·†≠Æ smudge
+>>>>>>> 51f9fa2cf38b0a7ffc15f2cb0844f4e6edec42d6
         IFNB <name>
-        DB  NAME
+        DB  name
         ENDIF
+<<<<<<< HEAD
         DB  lchar   ; –ø–æ—Å–ª–µ–¥–Ω–∏–π —Å–∏–º–≤–æ–ª —Å–ª–æ–≤–∞ + 128 (7 –±–∏—Ç = 1).  
         DW  LINK    ; LFA –ø—Ä–µ–¥—ã–¥—É—â–µ–µ —Å–ª–æ–≤–æ (–∞–¥—Ä–µ—Å –ø–µ—Ä–≤–æ–≥–æ —Å–∏–º–≤–æ–ª–∞ –∏–º–µ–Ω–∏)
     LINK=LINK$
     labl LABEL FAR  ; CFA
+=======
+        DB  lchar   ; ØÆ·´•§≠®© ·®¨¢Æ´ ·´Æ¢† + 128 (7 °®‚ = 1).  
+
+        DW  LINK    ; LFA Ø‡•§Î§„È•• ·´Æ¢Æ (†§‡•· Ø•‡¢Æ£Æ ·®¨¢Æ´† ®¨•≠®)
+    	LINK=LINK$
+
+    	labl LABEL FAR  ; CFA
+>>>>>>> 51f9fa2cf38b0a7ffc15f2cb0844f4e6edec42d6
         IFNB <code> ; 
         DW code
         ELSE
         DW  $+2
         ENDIF
-        ENDM
+    ENDM
+    HEAD2  MACRO length, name, lchar, labl, code
+    	LINK$=$
+        DB  length  ; NFA 7 °®‚ ‡†¢•≠ 1.
+                    ; 6 - Ø‡®ß≠†™ immediate. 5- ·´Æ¢Æ ≠• ÆØ®·†≠Æ smudge
+        IFNB <name>
+        DB  '&name','>'
+        ENDIF
+        DB  lchar   ; ØÆ·´•§≠®© ·®¨¢Æ´ ·´Æ¢† + 128 (7 °®‚ = 1).  
+
+        DW  LINK    ; LFA Ø‡•§Î§„È•• ·´Æ¢Æ (†§‡•· Ø•‡¢Æ£Æ ·®¨¢Æ´† ®¨•≠®)
+    	LINK=LINK$
+
+    	labl LABEL FAR  ; CFA
+        IFNB <code> ; 
+        DW code
+        ELSE
+        DW  $+2
+        ENDIF
+    ENDM
 
     debug equ 1
     NEXT MACRO   ; –ø–µ—Ä–µ—Ö–æ–¥ –∫ –∏—Å–ø–æ–ª–Ω–µ–Ω–∏—é —Å–ª–µ–¥—É—é—â–µ–≥–æ —Å–ª–æ–≤–∞
@@ -45,7 +83,7 @@ LINK=0
     ENDIF 
     ; -----------------------------
         JMP WORD PTR [BX] 
-        ENDM
+    ENDM
 
   TITLE   FORTH Interpreter
 
@@ -81,10 +119,11 @@ LINK=0
 
    ASSUME  CS:ARRAY, DS:ARRAY, ES:ARRAY, SS:STCK
 
+
    $INI      PROC    FAR
              JMP  ENT
    ; ** PRIMITIVES **
-
+  
              HEAD    83h,'IN',311Q,INIT                  ;INI
    ENT:      MOV   CX, ARRAY
              MOV   DS, CX          ; –£—Å—Ç–∞–Ω–æ–≤–∫–∞ DX
@@ -847,7 +886,7 @@ include debug.asm
             XOR  AX, CX
             JMP  ENDA
 
-            HEAD     84h,'S-#',304Q,STOD                 ; S->D ; sds S->
+            HEAD2     84h,<S->,304Q,STOD                 ; S->D ; sds S->
             POP  AX
             PUSH AX
             MOV  CX, DX           ; –°–æ—Ö—Ä–∞–Ω–µ–Ω–∏–µ —Å–æ–¥–µ—Ä–∂–∏–º–æ–≥–æ DX
@@ -904,10 +943,16 @@ include debug.asm
             NEXT
 
             HEAD     82h, 62,322Q,TOR                    ; >R sds
+<<<<<<< HEAD
         ; –ø–∏—à–µ–º –≤ —Å—Ç–µ–∫ –≤–æ–∑–≤—Ä–∞—Ç–æ–≤
         ; —Å–ª–æ–≤–æ –∏–∑ —Å—Ç–µ–∫–∞ –¥–∞–Ω–Ω—ã—Ö
             SUB  BP, 2 ; –∑–∞–Ω—è–ª–∏ —è—á–µ–π–∫—É 
             POP  [BP]   ; –∑–∞–ø–∏—Å–∞–ª–∏ –∑–Ω–∞—á–µ–Ω–∏–µ 
+=======
+        ; Ø®Ë•¨ ¢ ·‚•™ ¢Æß¢‡†‚Æ¢ ·´Æ¢Æ ®ß ·‚•™† §†≠≠ÎÂ
+            SUB  BP, 2 ; ß†≠Ô´® ÔÁ•©™„ 
+            POP  [BP]   ; ß†Ø®·†´® ß≠†Á•≠®• 
+>>>>>>> 51f9fa2cf38b0a7ffc15f2cb0844f4e6edec42d6
             NEXT
 
 	        HEAD     82h, 'R',276Q,FROMR                  ; R>
@@ -1324,7 +1369,7 @@ include debug.asm
             NEXT
 
             HEAD     88h, 'VARIABL',305Q,VAR,$COL        ; VARIABLE
-            DW CON,PSCOD
+            DW CON,PSCOD  ; §Æ´¶≠Æ °Î‚Ï ≠†Á†´Ï≠Æ• ß≠†Á•≠®• Ø•‡•¨•≠≠Æ©
    $VAR     LABEL   FAR
             ADD  BX, 2  ; BX —É–∫–∞–∑—ã–≤–∞–µ—Ç –Ω–∞ CFA ($COL)
                         ; BX+2 –ø—Ä–æ–ø—É—Å–∫–∞–µ—Ç –ø–æ–ª–µ CFA
@@ -1583,11 +1628,19 @@ include debug.asm
     ; —Ç–∞–∫–∏–º –æ–±—Ä–∞–∑–æ–º –≤ CFA –±—É–¥–µ—Ç —Å–≤–æ–π –∫–æ–¥ –∏–Ω—Ç–µ—Ä–ø—Ä–µ—Ç–∞—Ç–æ—Ä–∞ –Ω–∞ –∞—Å—Å–µ–º–±–ª–µ—Ä–µ
              DW  FROMR,LATES,PFA,CFA,STORE,SEMI
 
+<<<<<<< HEAD
              HEAD    87h,'#BUILD',323Q,BUILD,$COL        ; <BUILDS ; 
     ; —Ñ–æ—Ä–º–∏—Ä—É–µ—Ç –≤ —Å–ª–æ–≤–∞—Ä–µ –æ–ø–∏—Å–∞–Ω–∏–µ –∫–æ–Ω—Å—Ç–∞–Ω—Ç—ã —Ä–∞–≤–Ω–æ–π 0 —Å –∏–º–µ–Ω–µ–º XXX
     ; –≤ –ø–æ–ª–µ PFA –Ω–∞—Ö–æ–¥–∏—Ç—Å—è 0, –∫–æ—Ç–æ—Ä—ã–π –ø–æ—Ç–æ–º –∑–∞–º–µ–Ω–∏—Ç—Å—è –∞–¥—Ä–µ—Å–æ–º –∫–æ–¥–∞,
     ; —Å–ª–µ–¥—É—é—â–µ–≥–æ –∑–∞ —Å–ª–æ–≤–æ–º DOES 
     ; –≤ CFA –±—É–¥–µ—Ç –ø–æ–º–µ—â–µ–Ω –∞–¥—Ä–µ—Å –∫–æ–¥–∞ $DOE
+=======
+             HEAD    87h, '<BUILD',323Q,BUILD,$COL        ; <BUILDS ; 
+    ; ‰Æ‡¨®‡„•‚ ¢ ·´Æ¢†‡• ÆØ®·†≠®• ™Æ≠·‚†≠‚Î ‡†¢≠Æ© 0 · ®¨•≠•¨ XXX
+    ; ¢ ØÆ´• PFA ≠†ÂÆ§®‚·Ô 0, ™Æ‚Æ‡Î© ØÆ‚Æ¨ ß†¨•≠®‚·Ô †§‡•·Æ¨ ™Æ§†,
+    ; ·´•§„ÓÈ•£Æ ß† ·´Æ¢Æ¨ DOES 
+    ; ¢ CFA °„§•‚ ØÆ¨•È•≠ †§‡•· ™Æ§† $DOE
+>>>>>>> 51f9fa2cf38b0a7ffc15f2cb0844f4e6edec42d6
              DW  ZERO,CON,SEMI
 
              HEAD    85h,'COUN',324Q,COUNT,$COL          ; COUNT
@@ -1954,9 +2007,15 @@ include debug.asm
    SPA:      DW  SPACE,XLOOP,SPA-$
    SP1:      DW  SEMI
 
+<<<<<<< HEAD
              HEAD    82h,'#',243Q,BDIGS,$COL             ; <# ; sds replace 
     ; –ù–∞—á–∏–Ω–∞–µ—Ç –ø—Ä–æ—Ü–µ—Å—Å –ø—Ä–µ–æ–±—Ä–∞–∑–æ–≤–∞–Ω–∏—è —á–∏—Å–ª–∞ –≤ –ø–æ—Å–ª–µ–¥–æ–≤–∞—Ç–µ–ª—å–Ω–æ—Å—Ç—å –∫–æ–¥–æ–≤ ASCII.
     ; –ò—Å—Ö–æ–¥–Ω–æ–µ —á–∏—Å–ª–æ –≤ —Å—Ç–µ–∫–µ –¥–æ–ª–∂–Ω–æ –±—ã—Ç—å –¥–≤–æ–π–Ω–æ–π –¥–ª–∏–Ω—ã –±–µ–∑ –∑–Ω–∞–∫–∞
+=======
+             HEAD    82h,'<',243Q,BDIGS,$COL             ; <# ; sds replace 
+    ; ç†Á®≠†•‚ Ø‡ÆÊ•·· Ø‡•Æ°‡†ßÆ¢†≠®Ô Á®·´† ¢ ØÆ·´•§Æ¢†‚•´Ï≠Æ·‚Ï ™Æ§Æ¢ ASCII.
+    ; à·ÂÆ§≠Æ• Á®·´Æ ¢ ·‚•™• §Æ´¶≠Æ °Î‚Ï §¢Æ©≠Æ© §´®≠Î °•ß ß≠†™†
+>>>>>>> 51f9fa2cf38b0a7ffc15f2cb0844f4e6edec42d6
              DW  PAD,HLD,STORE,SEMI
 
              HEAD    82h,'#',276Q,EDIGS,$COL             ; #>
