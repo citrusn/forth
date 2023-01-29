@@ -6,41 +6,42 @@
 ;   tlink.exe /x /3 LFB.obj
  
 .386p      ; 32-битные регистры появились на 386
-LFB_seg segment para public "code" use16        ; Наш сегмент
-    assume  CS:LFB_seg,DS:LFB_seg,SS:LFB_seg    ; Код, данные, стек
-                                ; находятся в одном сегменте
+LFB_seg segment para public "code" use16    ; Наш сегмент
+assume  CS:LFB_seg, DS:LFB_seg, SS:LFB_seg  ; Код, данные, стек
+		                            ; находятся в одном сегменте
 start:
  
 ; Этот блок кода отвечает за переход в BIG REAL MODE
 ; мы не будем на нём подробно останавливаться…
- 
-    push    cs
+    push cs
     pop ds
-    mov eax,cr0
-    test    al,1
+    mov eax, cr0
+    test al, 1
     jz  no_V86
-    mov dx,offset v86_msg
+    mov dx, offset v86_msg
 err_exit:
-    mov ah,9
+    mov ah, 9
     int 21h
-    mov ah,4Ch
+    mov ah, 4Ch
     int 21h
 v86_msg db  "Error!Bad mode in v86!$"
 win_msg db  "Error!Windows is runing!$"
+
 no_V86:
-    mov ax,1600h
+    mov ax, 1600h
     int 2Fh
-    test    al,al
+    test al, al
     jz  no_windows
-    mov dx,offset win_msg
+    mov dx, offset win_msg
     jmp err_exit
+
 no_windows:
-    xor eax,eax
-    mov ax,cs
-    shl eax,4
-    add ax,offset GDT
-    mov gdt_base,eax
-    lgdt    fword ptr gdtr
+    xor eax, eax
+    mov ax, cs
+    shl eax ,4
+    add ax, offset GDT
+    mov gdt_base, eax
+    lgdt fword ptr gdtr
     cli
     mov eax,cr0
     or  al,1
@@ -70,17 +71,17 @@ exit_PM:
     mov ds,ax
 ; Всё, теперь мы в BIG REAL MODE
 ; Нам нужны некоторые сегментные регистры
-    push    ds
-    pop es
+    push ds
+    pop  es
 ; Получаем общую SVGA информацию
-    mov ax,4F00h
+    mov ax, 4F00h
 ; Сохраняем её в буфере
-    mov di,offset Video_Buffer
+    mov di, offset Video_Buffer
     int 10h
 ; Считываем номер версии VBE в BX
-    mov bx,word ptr [Video_Buffer+04h]
+    mov bx, word ptr [Video_Buffer+04h]
 ; Если он ниже чем 2.0
-    cmp bx,0200h
+    cmp bx, 0200h
 ; Выдать сообщение об ошибке
     jl  Not_support_LFB
 ; Иначе переходим далее
@@ -97,28 +98,44 @@ Next_step:
     mov cx,4112h
     mov edi, offset Info_Buffer
     int 10h
+
 ; Записываем физический адрес начала LFB в ESI
     mov esi,dword ptr [Info_Buffer+028h]
-    push    esi
+    push esi
+
 ; Устанавливаем режим
     mov ax,4F02h
-    mov bx,4112h
+    mov bx,4112h  ; flat buffer 640x480x16M
     int 10h
     pop esi
+
 ; Теперь выводим точку
- 
     mov X_scr,640
-    mov Pos_X,100
-    mov Pos_Y,100
-    mov Cr_Red,255
-    mov Cr_Blue,0
+    mov Cr_Red,0
+    mov Cr_Blue,200
     mov Cr_Green,255
     mov Cr_Alpha,0
-    call    pset32bit
+    mov ecx, 640 	
+x_cycle:
+    mov Pos_X, ecx
+    mov word ptr [cr_red], cx
+    push ecx
+    mov ecx, 480		
+y_cycle:   	
+    mov Pos_Y, ecx
+    mov word ptr [cr_blue], cx
+    push ecx
+    call pset32bit
+    pop ecx
+    loop y_cycle
+    pop ecx
+    loop x_cycle
 ; Ожидание нажатия клавиши
     mov ah,1
     int 21h
 ; Выход
+    mov ax, 03h
+    int 10h
     mov ah,4Ch
     int 21h
  
@@ -128,47 +145,45 @@ pset32bit   proc
     pusha
 ; В общем случае формула выглядит так:
 ;  X_scr * Pos_Y * Количество компонент цвета + Pos_X * Количество компонент цвета
- 
-    mov eax,Pos_Y
-    mov ebx,X_scr
-    imul    eax,ebx
-    imul    eax,4
+    mov eax, Pos_Y
+    mov ebx, X_scr
+    imul eax, ebx
+    imul eax, 4
     mov ebx,Pos_X
-    imul    ebx,4
-    add eax,ebx
-    xor ecx,ecx
-    xor ebx,ebx
-    mov cl,Cr_Blue
-    mov ch,Cr_Green
-    mov bl,Cr_Red
-    mov bh,Cr_Alpha
-    mov byte ptr fs:[esi+eax],cl
-    inc eax
-    mov byte ptr fs:[esi+eax],ch
-    inc eax
-    mov byte ptr fs:[esi+eax],bl
-    inc eax
-    mov byte ptr fs:[esi+eax],bh
+    imul ebx, 4
+    add eax, ebx
+    xor ecx, ecx
+    xor ebx, ebx
+    mov ecx, dword ptr [Cr_Blue]
+    ;mov cl,Cr_Blue
+    ;mov ch,Cr_Green
+    ;mov bl,Cr_Red
+    ;mov bh,Cr_Alpha
+    mov dword ptr fs:[esi+eax], ecx ; blue
+    ;mov byte ptr fs:[esi+eax],cl ; blue
+    ;inc eax
+    ;mov byte ptr fs:[esi+eax],ch ; green
+    ;inc eax
+    ;mov byte ptr fs:[esi+eax],bl ; red
+    ;inc eax
+    ;mov byte ptr fs:[esi+eax],bh ; alfa
     popa
     ret
 pset32bit   endp
+
 ; Начало области данных
- 
 GDT label   byte
-; Нулевой дескриптор
-    db  8 dup(0)
+    db  8 dup(0) ; Нулевой дескриптор
 ; 16-битный 4 Гб сегмент:
     db  0FFh,0FFh,0,0,0,10010010b,11001111b,0
-; Размер GDT
-gdtr    dw  16
-; Линейный адрес GDT
-gdt_base        dd  ?
+gdtr    	dw  16  ; Размер GDT
+gdt_base        dd  ?   ; Линейный адрес GDT
 Pos_X           dd  0   ; Координата X точки
 Pos_Y           dd  0   ; Координата Y точки
 X_scr           dd  0   ; Разрешение по X
-Cr_Red          db  0   ; Красная компонента
-Cr_Green        db  0   ; Зелёная компонента
 Cr_Blue         db  0   ; Синяя компонента
+Cr_Green        db  0   ; Зелёная компонента
+Cr_Red          db  0   ; Красная компонента
 Cr_Alpha        db  0   ; Альфа
 Info_Buffer     db  256 dup(0)  ; Буфер для информации о режиме
 Video_Buffer    db  512 dup (0) ; Буфер для общей SVGA информации
